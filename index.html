@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>POLESHIFT 폴시프트 — MAGNETIC PUZZLE</title>
+<style>
+:root{--bg:#04060f;--navy:#0b1430;--panel:#0f1a3a;--cy:#22e6ff;--mg:#ff3bd4;--gold:#ffc940;--tx:#e8eeff;--mut:#9aa7d1;
+--blue:#3b82ff;--red:#ff4b5c;--yellow:#ffd23a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;font-size:16px;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 30%,#101c46 0%,#060a1c 55%,#020308 100%)}
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:1;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}
+.screen.on{display:flex}
+button{font:inherit;font-weight:700;color:var(--tx);background:var(--panel);border:2px solid #2b3a72;border-radius:14px;padding:12px 16px;min-height:48px;cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.38;cursor:not-allowed}
+button.pri{background:linear-gradient(135deg,#0c5f7a,#0b2f66);border-color:var(--cy)}
+button.mg{background:linear-gradient(135deg,#6a1564,#2c1050);border-color:var(--mg)}
+button.gold{border-color:var(--gold);color:var(--gold)}
+/* menu */
+#menu{justify-content:center;gap:12px}
+.logo{display:flex;flex-direction:column;align-items:center;margin-bottom:14px}
+.logo .word{font-size:clamp(38px,11vw,64px);font-weight:900;letter-spacing:.08em;background:linear-gradient(90deg,var(--cy),#fff 50%,var(--mg));-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo .sub{letter-spacing:.45em;color:var(--cy);font-size:14px;font-weight:700}
+.logo .kr{color:var(--mut);font-size:15px;margin-top:4px}
+.slogan{color:var(--gold);font-size:13px;letter-spacing:.12em;text-align:center}
+.menuBtns{display:flex;flex-direction:column;gap:10px;width:min(320px,86vw)}
+.rec{color:var(--mut);font-size:15px;text-align:center}
+/* game */
+#game{padding-top:max(6px,env(safe-area-inset-top))}
+.hud{display:flex;gap:6px;width:100%;max-width:560px;align-items:stretch}
+.stat{flex:1;background:rgba(15,26,58,.85);border:1px solid #2b3a72;border-radius:12px;padding:4px 6px;text-align:center}
+.stat b{display:block;font-size:19px}
+.stat span{font-size:12px;color:var(--mut)}
+.hud button{min-height:44px;padding:6px 10px;font-size:15px}
+#boardWrap{flex:1;width:100%;max-width:560px;display:flex;align-items:center;justify-content:center;min-height:0;position:relative}
+#board{touch-action:manipulation;user-select:none}
+.ctrl{width:100%;max-width:560px;display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:6px;align-items:center}
+.preview{display:flex;gap:6px;align-items:center;background:rgba(15,26,58,.85);border:1px solid #2b3a72;border-radius:12px;padding:4px 8px}
+.preview small{color:var(--mut);font-size:12px;display:block;text-align:center}
+.ctrl button{padding:8px 4px;font-size:15px}
+#hint{width:100%;max-width:560px;font-size:14px;color:var(--mut);text-align:center;min-height:40px;padding:4px 2px 8px;line-height:1.35}
+#formula{font-size:12px;color:#7d8bbb;text-align:center;max-width:560px}
+/* overlay */
+.ov{position:fixed;inset:0;background:rgba(2,4,12,.82);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.ov.on{display:flex}
+.card{background:linear-gradient(160deg,#121f48,#0a1128);border:2px solid #2b3a72;border-radius:20px;padding:18px;width:min(440px,100%);max-height:92vh;overflow:auto}
+.card h2{margin:0 0 10px;color:var(--cy);font-size:22px}
+.card p,.card li{line-height:1.5;font-size:15px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.row button{flex:1}
+.tog{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #22305e;font-size:16px}
+.tog button{min-width:90px}
+/* toast/combo */
+#toast{position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:30;pointer-events:none;text-align:center}
+.tmsg{background:rgba(10,16,40,.92);border:2px solid var(--cy);border-radius:14px;padding:8px 16px;margin:4px;font-weight:800;font-size:18px;animation:pop .9s ease forwards}
+.tmsg.gold{border-color:var(--gold);color:var(--gold)}
+@keyframes pop{0%{opacity:0;transform:scale(.7)}15%{opacity:1;transform:scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+body.rm .tmsg{animation:none}
+/* gallery */
+#gallery{padding-top:12px;overflow:auto}
+#gallery h1{margin:4px 0;font-size:24px;color:var(--gold);letter-spacing:.08em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;width:100%;max-width:640px;padding-bottom:12px}
+.gcard{border-radius:16px;border:2px solid #2b3a72;background:#0b1430;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;padding:0;text-align:left;font-weight:400}
+.gcard.un{border-color:var(--gold);box-shadow:0 0 12px rgba(255,201,64,.35)}
+.gimg{aspect-ratio:3/4;width:100%;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.gimg img{width:100%;height:100%;object-fit:cover;display:block}
+.gimg .lock{position:absolute;font-size:34px}
+.ginfo{padding:8px;font-size:13px;line-height:1.35}
+.ginfo b{font-size:15px;display:block}
+.bar{height:8px;background:#1b264e;border-radius:6px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cy),var(--mg))}
+.unlockAnim{animation:unl 1.2s ease}
+@keyframes unl{0%{transform:scale(.6) rotate(-6deg);opacity:0}60%{transform:scale(1.06)}100%{transform:none;opacity:1}}
+body.rm .unlockAnim{animation:none}
+#zoomImg{width:100%;aspect-ratio:3/4;border-radius:14px;overflow:hidden}
+@media (max-height:700px){.stat b{font-size:16px}.ctrl button{min-height:44px}#formula{display:none}}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<!-- ===================== MAIN MENU ===================== -->
+<section id="menu" class="screen on">
+  <div class="logo" aria-label="POLESHIFT 로고">
+    <svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
+      <circle cx="60" cy="60" r="52" fill="none" stroke="#22e6ff" stroke-width="2" opacity=".5"/>
+      <circle cx="60" cy="60" r="36" fill="none" stroke="#ff3bd4" stroke-width="2" opacity=".6"/>
+      <circle cx="60" cy="60" r="20" fill="none" stroke="#ffc940" stroke-width="2" opacity=".7"/>
+      <circle cx="60" cy="60" r="8" fill="#22e6ff"/>
+      <circle cx="60" cy="8" r="11" fill="#0b1430" stroke="#22e6ff" stroke-width="3"/><text x="60" y="13" text-anchor="middle" font-size="13" font-weight="900" fill="#22e6ff">N</text>
+      <circle cx="60" cy="112" r="11" fill="#0b1430" stroke="#ff3bd4" stroke-width="3"/><text x="60" y="117" text-anchor="middle" font-size="13" font-weight="900" fill="#ff3bd4">S</text>
+      <path d="M 82 30 A 36 36 0 0 1 90 74" fill="none" stroke="#fff" stroke-width="3" marker-end="url(#ah)"/>
+      <defs><marker id="ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="#fff"/></marker></defs>
+    </svg>
+    <div class="word">POLESHIFT</div>
+    <div class="sub">MAGNETIC PUZZLE</div>
+    <div class="kr">폴시프트</div>
+  </div>
+  <div class="slogan">FLIP THE POLES. CHANGE THE GAME.<br>극성을 뒤집어, 판을 바꿔라.</div>
+  <div class="rec" id="menuRec"></div>
+  <div class="menuBtns">
+    <button class="pri" id="btnStart">▶ 게임 시작</button>
+    <button id="btnContinue">⟲ 이어하기</button>
+    <button class="gold" id="btnGallery">★ 갤러리</button>
+    <button id="btnHow">? 게임 방법</button>
+    <button id="btnSettings">⚙ 설정</button>
+  </div>
+</section>
+
+<!-- ===================== GAME ===================== -->
+<section id="game" class="screen">
+  <div class="hud">
+    <div class="stat"><span>점수</span><b id="hScore">0</b></div>
+    <div class="stat"><span>최고</span><b id="hBest">0</b></div>
+    <div class="stat"><span>콤보</span><b id="hCombo">0</b></div>
+    <button id="btnPause" aria-label="일시정지">⏸</button>
+  </div>
+  <div id="boardWrap"><svg id="board" role="img" aria-label="원형 경기장"></svg></div>
+  <div class="ctrl">
+    <div class="preview">
+      <div><svg id="pvCur" width="46" height="46"></svg><small>현재</small></div>
+      <div><svg id="pvNext" width="34" height="34"></svg><small>다음</small></div>
+    </div>
+    <button class="pri" id="btnFire">🚀 발사</button>
+    <button class="mg" id="btnFlip">⇅ 극성 전환</button>
+    <button id="btnCancel">✕ 취소</button>
+  </div>
+  <div id="hint"></div>
+  <div id="formula">점수 = Σ(원 수×100 + 크기 보너스[4개:+100, 5개 이상:+100+(n−4)×200]) × 콤보 배율[1 + 0.5×(콤보−1)]</div>
+</section>
+
+<!-- ===================== GALLERY ===================== -->
+<section id="gallery" class="screen">
+  <h1>POLESHIFT GALLERY</h1>
+  <div class="rec" id="galStats"></div>
+  <div class="grid" id="galGrid"></div>
+  <div class="row" style="width:100%;max-width:640px;padding-bottom:16px"><button id="galBack">← 돌아가기</button></div>
+</section>
+
+<!-- ===================== OVERLAYS ===================== -->
+<div class="ov" id="ovPause"><div class="card"><h2>일시정지</h2>
+  <div class="row"><button class="pri" id="pResume">계속하기</button></div>
+  <div class="row"><button id="pRestart">재시작</button><button id="pRules">규칙</button></div>
+  <div class="row"><button id="pSettings">설정</button><button id="pMenu">메인 메뉴</button></div>
+</div></div>
+<div class="ov" id="ovSettings"><div class="card"><h2>설정</h2>
+  <div class="tog">효과음<button id="sSound"></button></div>
+  <div class="tog">진동<button id="sVib"></button></div>
+  <div class="tog">애니메이션 줄이기<button id="sRM"></button></div>
+  <div class="row"><button class="pri" id="sClose">닫기</button></div>
+</div></div>
+<div class="ov" id="ovRules"><div class="card"><h2>게임 방법</h2><div id="rulesBody"></div>
+  <div class="row"><button id="rPrev">이전</button><button class="pri" id="rNext">다음</button></div>
+</div></div>
+<div class="ov" id="ovOver"><div class="card" style="text-align:center"><h2>POLESHIFT — GAME OVER</h2>
+  <p id="overBody"></p>
+  <div class="row"><button class="pri" id="oRestart">다시 시작</button><button id="oMenu">메인 메뉴</button></div>
+  <div class="row"><button class="gold" id="oGallery">갤러리</button></div>
+</div></div>
+<div class="ov" id="ovZoom"><div class="card"><h2 id="zTitle"></h2><div id="zoomImg"></div><p id="zDesc"></p>
+  <div class="row"><button class="pri" id="zClose">닫기</button></div></div></div>
+<div id="toast" aria-live="polite"></div>
+
+<!-- =====================================================================
+     [CONFIG] 점수 · 해금 조건 · 갤러리 이미지 목록  (여기만 수정하면 됩니다)
+     ===================================================================== -->
+<script id="config">
+var POLESHIFT_CONFIG = {
+  // ---- 점수 ----
+  SCORE: {
+    PER_CIRCLE: 100,          // 원 하나당
+    BONUS_4: 100,             // 4개 연결 보너스
+    BONUS_5_BASE: 100,        // 5개 이상: BONUS_5_BASE + (n-4)*BONUS_5_STEP
+    BONUS_5_STEP: 200,
+    COMBO_STEP: 0.5           // 배율 = 1 + COMBO_STEP*(콤보-1)  (2콤보부터 >1)
+  },
+  MAX_PULSES: 3,              // 한 턴 자기장 펄스 최대 횟수
+  MAX_CHAIN: 10,              // 연쇄 최대 단계
+  MIN_CLEAR: 3,               // 소거 최소 연결 수
+  EASY_TURNS: 8,              // 이 턴 수까지는 2색/단순 공급
+  // ---- 갤러리 해금 조건 ----
+  // type: 'totalScore'(누적 총점) | 'maxCombo'(최고 콤보) | 'gameScore'(한 게임 점수)
+  REWARDS: [
+    { id: 'r1', title: 'Nebula Muse',     cond: { type: 'totalScore', value: 1000 } },
+    { id: 'r2', title: 'Cyan Horizon',    cond: { type: 'totalScore', value: 3000 } },
+    { id: 'r3', title: 'Magenta Pulse',   cond: { type: 'maxCombo',   value: 3 } },
+    { id: 'r4', title: 'Polar Eclipse',   cond: { type: 'maxCombo',   value: 5 } },
+    { id: 'r5', title: 'Golden Flux',     cond: { type: 'gameScore',  value: 10000 }, rare: true }
+  ]
+};
+/* 갤러리 이미지 목록 (보상과 분리된 데이터 구조).
+   src 에 이미지 경로/URL을 넣으면 해금 후 표시됩니다. 비어 있거나 로드 실패 시
+   자체 제작 추상 카드(SVG)로 자동 대체됩니다.
+   콘텐츠 정책(README 참조): 명확한 성인(25세 이상) 여성의 비노골적 패션 화보
+   스타일만 사용. 성적 행위/노출 묘사 금지. 이미지 생성 API 키를 이 파일에 넣지 마세요. */
+var POLESHIFT_GALLERY_IMAGES = [
+  { rewardId: 'r1', src: '', alt: 'Nebula Muse 화보', hue: 200 },
+  { rewardId: 'r2', src: '', alt: 'Cyan Horizon 화보', hue: 185 },
+  { rewardId: 'r3', src: '', alt: 'Magenta Pulse 화보', hue: 310 },
+  { rewardId: 'r4', src: '', alt: 'Polar Eclipse 화보', hue: 260 },
+  { rewardId: 'r5', src: '', alt: 'Golden Flux 화보', hue: 45 }
+];
+</script>
+
+<!-- =====================================================================
+     [LOGIC] 순수 게임 규칙 모듈 — DOM 의존 없음 (Node 테스트에서 그대로 로드)
+     ===================================================================== -->
+<script id="logic">
+(function (root) {
+  'use strict';
+  var RINGS = 3, SLOTS = 12, N_POS = RINGS * SLOTS;
+  var COLORS = ['blue', 'red', 'yellow'];
+
+  /* ---------- 위치 / 인접 ----------
+     위치 인덱스 p = ring*12 + slot (ring 0 = 안쪽). 모든 궤도가 12칸이므로
+     "같은 각도"의 인접 궤도 칸은 같은 slot 이다. 같은 궤도는 slot±1 (원형 연결). */
+  function pos(r, s) { return r * SLOTS + ((s % SLOTS) + SLOTS) % SLOTS; }
+  function ringOf(p) { return Math.floor(p / SLOTS); }
+  function slotOf(p) { return p % SLOTS; }
+  function valid(p) { return Number.isInteger(p) && p >= 0 && p < N_POS; }
+  var ADJ = [];
+  for (var p0 = 0; p0 < N_POS; p0++) {
+    var r = ringOf(p0), s = slotOf(p0), a = [pos(r, s - 1), pos(r, s + 1)];
+    if (r > 0) a.push(pos(r - 1, s));
+    if (r < RINGS - 1) a.push(pos(r + 1, s));
+    ADJ.push(a.sort(function (x, y) { return x - y; }));
+  }
+  /* 원형 거리: 궤도 차 + 원형 슬롯 차 (그래프 최단거리와 동일) */
+  function dist(a, b) {
+    var ds = Math.abs(slotOf(a) - slotOf(b)); ds = Math.min(ds, SLOTS - ds);
+    return Math.abs(ringOf(a) - ringOf(b)) + ds;
+  }
+
+  /* ---------- 시드 RNG (mulberry32) — 상태는 정수 하나라 직렬화/재현 가능 ---------- */
+  function rngNext(state) {
+    var t = (state.rng = (state.rng + 0x6D2B79F5) | 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  /* ---------- 상태 ----------
+     cells[p] = 원 id 또는 null, circles[id] = {id,color,pol,ring,slot} */
+  function createGame(seed, cfg) {
+    var st = {
+      cfg: cfg, seed: seed >>> 0, rng: seed >>> 0, nextId: 1, turn: 0,
+      cells: new Array(N_POS).fill(null), circles: {},
+      score: 0, combo: 0, maxCombo: 0, over: false, overReason: '', current: null, next: null
+    };
+    st.current = genPiece(st); st.next = genPiece(st);
+    return st;
+  }
+  function clone(st) { return JSON.parse(JSON.stringify(st)); }
+  /* 공급 규칙: EASY_TURNS 까지는 파랑/빨강 + 극성 N 위주, 이후 3색 × N/S 무작위 */
+  function genPiece(st) {
+    var easy = st.turn < st.cfg.EASY_TURNS;
+    var color = easy ? COLORS[Math.floor(rngNext(st) * 2)] : COLORS[Math.floor(rngNext(st) * 3)];
+    var pol = easy ? (rngNext(st) < 0.75 ? 'N' : 'S') : (rngNext(st) < 0.5 ? 'N' : 'S');
+    return { color: color, pol: pol };
+  }
+  function emptyPositions(st) { var o = []; for (var p = 0; p < N_POS; p++) if (st.cells[p] === null) o.push(p); return o; }
+  function addCircle(st, p, color, pol) {
+    if (!valid(p) || st.cells[p] !== null) return null;
+    var id = st.nextId++;
+    st.circles[id] = { id: id, color: color, pol: pol, ring: ringOf(p), slot: slotOf(p) };
+    st.cells[p] = id; return id;
+  }
+  function posOfId(st, id) { var c = st.circles[id]; return pos(c.ring, c.slot); }
+  function sortedIds(st) { return Object.keys(st.circles).map(Number).sort(function (a, b) { return a - b; }); }
+
+  /* ---------- 자기장 이동 계산 ----------
+     sources: 기준 원(배치/전환된 원) id 목록. 기준 원은 고정(앵커).
+     각 펄스:
+       1) 현재 상태의 '복사본(snapshot)'에서만 읽는다.
+       2) 기준 원으로부터 거리 ≤ 2 인 원들을 (거리, id) 순으로 정렬해 처리 순서를 고정.
+       3) 반대 극성 → 기준과의 거리를 줄이는 빈 인접칸, 같은 극성 → 거리를 늘리는 빈 인접칸을 후보로.
+          (여러 기준이 있으면 첫 번째로 영향 준 가장 가까운 기준을 사용)
+       4) 후보 정렬: 목표(기준)까지의 원형 거리(인력: 오름차순 / 반발: 내림차순) → 같은 궤도 이동 우선 → 위치 번호.
+       5) 충돌 판정: snapshot 에서 비어 있고, 이번 펄스에 다른 원이 선점하지 않은 칸만 허용.
+          실패 시 다음 후보, 모두 실패하면 제자리(blocked 기록).
+       6) 모든 이동을 모은 뒤 한꺼번에 적용 → 점유 상태 재계산.
+     최대 MAX_PULSES 회, 이동이 없거나 이전 배치가 반복되면 즉시 안정. */
+  function computePulse(st, sources) {
+    var snap = st.cells.slice();
+    var srcPos = sources.filter(function (id) { return st.circles[id]; }).map(function (id) { return { id: id, p: posOfId(st, id), pol: st.circles[id].pol }; });
+    var list = [];
+    sortedIds(st).forEach(function (id) {
+      if (sources.indexOf(id) >= 0) return;
+      var p = posOfId(st, id), best = null;
+      srcPos.forEach(function (sp) { var d = dist(p, sp.p); if (d <= 2 && (!best || d < best.d)) best = { d: d, sp: sp }; });
+      if (best) list.push({ id: id, p: p, d: best.d, sp: best.sp });
+    });
+    list.sort(function (a, b) { return a.d - b.d || a.id - b.id; });
+    var claimed = {}, moves = [], blocked = [];
+    list.forEach(function (it) {
+      var c = st.circles[it.id], attract = c.pol !== it.sp.pol;
+      var cands = ADJ[it.p].filter(function (q) {
+        var nd = dist(q, it.sp.p);
+        return attract ? nd < it.d : nd > it.d;
+      });
+      if (!cands.length) return; // 이미 최적 위치 — 이동 의사 없음
+      cands.sort(function (a, b) {
+        var da = dist(a, it.sp.p), db = dist(b, it.sp.p);
+        var k = attract ? da - db : db - da; if (k) return k;
+        var sa = ringOf(a) === ringOf(it.p) ? 0 : 1, sb = ringOf(b) === ringOf(it.p) ? 0 : 1;
+        return (sa - sb) || (a - b);
+      });
+      for (var i = 0; i < cands.length; i++) {
+        var q = cands[i];
+        if (snap[q] === null && !claimed[q]) { claimed[q] = it.id; moves.push({ id: it.id, from: it.p, to: q, type: attract ? 'attract' : 'repel' }); return; }
+      }
+      blocked.push({ id: it.id, at: it.p, want: cands[0] });
+    });
+    return { moves: moves, blocked: blocked };
+  }
+  function applyMoves(st, moves) {
+    var cells = st.cells.slice();
+    moves.forEach(function (m) { cells[m.from] = null; });
+    moves.forEach(function (m) {
+      if (cells[m.to] !== null) throw new Error('collision invariant broken');
+      cells[m.to] = m.id; st.circles[m.id].ring = ringOf(m.to); st.circles[m.id].slot = slotOf(m.to);
+    });
+    st.cells = cells;
+  }
+  function boardKey(st) { return st.cells.join(','); }
+  function runPulses(st, sources, events) {
+    var seen = {}; seen[boardKey(st)] = 1;
+    for (var k = 0; k < st.cfg.MAX_PULSES; k++) {
+      var r = computePulse(st, sources);
+      if (!r.moves.length) { if (r.blocked.length) events.push({ type: 'pulse', n: k + 1, moves: [], blocked: r.blocked }); break; }
+      applyMoves(st, r.moves);
+      events.push({ type: 'pulse', n: k + 1, moves: r.moves, blocked: r.blocked });
+      var key = boardKey(st); if (seen[key]) break; seen[key] = 1;
+    }
+  }
+  /* 소거 후 재배치 펄스: 남은 원이 코어 방향(안쪽 궤도 같은 slot)으로 한 칸씩 끌려간다.
+     안쪽 궤도부터 처리, 최대 MAX_PULSES 회. 결정적이며 경기장 밖으로 나갈 수 없음. */
+  function settle(st, events) {
+    for (var k = 0; k < st.cfg.MAX_PULSES; k++) {
+      var moves = [], snap = st.cells;
+      for (var r = 1; r < RINGS; r++) for (var s = 0; s < SLOTS; s++) {
+        var p = pos(r, s), q = pos(r - 1, s);
+        if (snap[p] !== null && snap[q] === null) moves.push({ id: snap[p], from: p, to: q, type: 'core' });
+      }
+      // 같은 펄스에서 r2→r1, r1→r0 동시 이동 시 r1 칸은 snapshot 기준 비어있지 않으므로 r2 원은 대기
+      if (!moves.length) break;
+      applyMoves(st, moves); events.push({ type: 'settle', moves: moves });
+    }
+  }
+
+  /* ---------- 연결 탐색 (flood fill, 같은 색만) ---------- */
+  function findGroups(st) {
+    var seen = {}, groups = [];
+    for (var p = 0; p < N_POS; p++) {
+      var id = st.cells[p]; if (id === null || seen[p]) continue;
+      var color = st.circles[id].color, stack = [p], g = []; seen[p] = 1;
+      while (stack.length) {
+        var x = stack.pop(); g.push(st.cells[x]);
+        ADJ[x].forEach(function (y) { if (!seen[y] && st.cells[y] !== null && st.circles[st.cells[y]].color === color) { seen[y] = 1; stack.push(y); } });
+      }
+      if (g.length >= st.cfg.MIN_CLEAR) groups.push({ color: color, ids: g.sort(function (a, b) { return a - b; }) });
+    }
+    return groups;
+  }
+  /* ---------- 점수 계산 ---------- */
+  function groupBase(n, S) { var b = n * S.PER_CIRCLE; if (n === 4) b += S.BONUS_4; else if (n >= 5) b += S.BONUS_5_BASE + (n - 4) * S.BONUS_5_STEP; return b; }
+  function comboMult(combo, S) { return 1 + S.COMBO_STEP * Math.max(0, combo - 1); }
+  function scoreStep(groups, combo, S) {
+    var base = 0; groups.forEach(function (g) { base += groupBase(g.ids.length, S); });
+    return Math.floor(base * comboMult(combo, S));
+  }
+  /* ---------- 소거 + 연쇄 ---------- */
+  function resolveClears(st, events) {
+    var combo = 0, gained = 0;
+    while (combo < st.cfg.MAX_CHAIN) {
+      var groups = findGroups(st); if (!groups.length) break;
+      combo++;
+      var ids = {}; groups.forEach(function (g) { g.ids.forEach(function (id) { ids[id] = 1; }); }); // 중복 제거
+      var list = Object.keys(ids).map(Number);
+      var pts = scoreStep(groups, combo, st.cfg.SCORE);
+      list.forEach(function (id) { st.cells[posOfId(st, id)] = null; delete st.circles[id]; }); // 동시 제거 + 참조 정리
+      st.score += pts; gained += pts;
+      events.push({ type: 'clear', combo: combo, ids: list, groups: groups, points: pts });
+      settle(st, events);
+    }
+    if (combo >= st.cfg.MAX_CHAIN && findGroups(st).length) events.push({ type: 'chainCap' });
+    st.combo = combo; if (combo > st.maxCombo) st.maxCombo = combo;
+    return gained;
+  }
+  function endTurn(st, events) {
+    st.turn++; st.current = st.next; st.next = genPiece(st);
+    if (emptyPositions(st).length === 0) { st.over = true; st.overReason = '빈 위치가 없어 더 이상 원을 배치할 수 없습니다 (소거 가능한 조합 없음).'; events.push({ type: 'gameover' }); }
+  }
+
+  /* ---------- 공개 행동 API (입력 검증 포함) ---------- */
+  function place(st, p) {
+    if (st.over) return { ok: false, reason: 'over' };
+    if (!valid(p)) return { ok: false, reason: 'invalid' };
+    if (st.cells[p] !== null) return { ok: false, reason: 'occupied' };
+    var events = [], id = addCircle(st, p, st.current.color, st.current.pol);
+    events.push({ type: 'place', id: id, at: p });
+    runPulses(st, [id], events);
+    resolveClears(st, events); endTurn(st, events);
+    return { ok: true, events: events };
+  }
+  function flip(st, id) {
+    if (st.over) return { ok: false, reason: 'over' };
+    if (!st.circles[id]) return { ok: false, reason: 'nocircle' };
+    var c = st.circles[id], from = c.pol; c.pol = from === 'N' ? 'S' : 'N';
+    var events = [{ type: 'flip', id: id, from: from, to: c.pol }];
+    runPulses(st, [id], events);
+    resolveClears(st, events); endTurn(st, events);
+    return { ok: true, events: events };
+  }
+  /* 무결성 검사 (테스트용) */
+  function checkIntegrity(st) {
+    var cnt = 0;
+    for (var p = 0; p < N_POS; p++) { var id = st.cells[p]; if (id === null) continue; cnt++; var c = st.circles[id]; if (!c || pos(c.ring, c.slot) !== p) return false; }
+    return cnt === Object.keys(st.circles).length;
+  }
+
+  root.PoleLogic = {
+    RINGS: RINGS, SLOTS: SLOTS, N_POS: N_POS, COLORS: COLORS, ADJ: ADJ,
+    pos: pos, ringOf: ringOf, slotOf: slotOf, dist: dist, createGame: createGame, clone: clone,
+    addCircle: addCircle, emptyPositions: emptyPositions, computePulse: computePulse, runPulses: runPulses,
+    findGroups: findGroups, groupBase: groupBase, comboMult: comboMult, scoreStep: scoreStep,
+    resolveClears: resolveClears, place: place, flip: flip, checkIntegrity: checkIntegrity, posOfId: posOfId
+  };
+  /* ---------- 보상 해금 (순수 함수) ---------- */
+  root.PoleRewards = {
+    progress: function (cond, stats) {
+      var v = cond.type === 'totalScore' ? stats.totalScore : cond.type === 'maxCombo' ? stats.bestCombo : stats.bestScore;
+      return Math.min(1, (v || 0) / cond.value);
+    },
+    evaluate: function (rewards, stats, unlocked) {
+      var newly = [];
+      rewards.forEach(function (r) { if (!unlocked[r.id] && root.PoleRewards.progress(r.cond, stats) >= 1) { unlocked[r.id] = true; newly.push(r.id); } });
+      return newly; // 이미 해금된 것은 절대 다시 잠그지 않음
+    }
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<!-- =====================================================================
+     [APP] 저장 · 설정 · 사운드 · 렌더링 · 입력 · UI
+     ===================================================================== -->
+<script id="app">
+(function () {
+  'use strict';
+  var L = window.PoleLogic, CFG = window.POLESHIFT_CONFIG, $ = function (id) { return document.getElementById(id); };
+  var COLORHEX = { blue: '#3b82ff', red: '#ff4b5c', yellow: '#ffd23a' };
+  var COLORKR = { blue: '파랑', red: '빨강', yellow: '노랑' };
+
+  /* ---------- 저장 및 불러오기 (localStorage 실패 시 메모리로 대체) ---------- */
+  var mem = {};
+  var Store = {
+    get: function (k, d) { try { var v = window.localStorage.getItem('poleshift.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return k in mem ? mem[k] : d; } },
+    set: function (k, v) { mem[k] = v; try { window.localStorage.setItem('poleshift.' + k, JSON.stringify(v)); } catch (e) { /* 저장 불가 환경 — 메모리만 사용 */ } }
+  };
+  var stats = Store.get('stats', { totalScore: 0, bestScore: 0, bestCombo: 0 });
+  var unlocked = Store.get('unlocked', {});
+  var settings = Store.get('settings', { sound: true, vib: true, rm: false });
+  if (window.matchMedia && Store.get('settings', null) === null && matchMedia('(prefers-reduced-motion: reduce)').matches) settings.rm = true;
+
+  /* ---------- 사운드 (Web Audio, 첫 사용자 입력 후 생성) ---------- */
+  var actx = null;
+  function audio() {
+    if (!settings.sound) return null;
+    try { if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); } if (actx.state === 'suspended') actx.resume(); } catch (e) { return null; }
+    return actx;
+  }
+  function tone(f1, f2, dur, type, vol, delay) {
+    var a = audio(); if (!a) return;
+    try {
+      var t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+      g.gain.setValueAtTime(vol || 0.15, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+    } catch (e) {}
+  }
+  var SFX = {
+    fire: function () { tone(900, 300, 0.14, 'square', 0.08); },
+    flip: function () { tone(200, 800, 0.18, 'sawtooth', 0.07); tone(800, 200, 0.18, 'sine', 0.06, 0.12); },
+    attract: function () { tone(160, 90, 0.25, 'sine', 0.14); },
+    repel: function () { tone(500, 1400, 0.08, 'triangle', 0.1); },
+    clear: function (combo) { var b = 660 * Math.pow(1.122, combo - 1); tone(b, b * 1.5, 0.22, 'triangle', 0.12); tone(b * 2, b * 2, 0.15, 'sine', 0.05, 0.05); },
+    unlock: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, f, 0.18, 'triangle', 0.12, i * 0.1); }); },
+    bump: function () { tone(120, 80, 0.07, 'square', 0.05); },
+    over: function () { tone(400, 100, 0.6, 'sawtooth', 0.08); }
+  };
+  function vib(ms) { if (settings.vib && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) {} }
+
+  /* ---------- 배경 별 (정적, 깜빡임 없음) ---------- */
+  function drawStars() {
+    var c = $('stars'), w = c.width = innerWidth, h = c.height = innerHeight, g = c.getContext('2d'), s = 12345;
+    function r() { s = (s * 16807) % 2147483647; return s / 2147483647; }
+    for (var i = 0; i < 140; i++) { g.fillStyle = 'rgba(200,220,255,' + (0.2 + r() * 0.6) + ')'; g.fillRect(r() * w, r() * h, r() < 0.9 ? 1 : 2, r() < 0.9 ? 1 : 2); }
+  }
+
+  /* ---------- 게임 상태 관리 (UI측) ---------- */
+  var G = null;             // 순수 로직 상태
+  var sel = null;           // {kind:'empty'|'circle', p}
+  var busy = false;         // 처리 중 입력 잠금
+  var paused = false;
+  var animToken = 0;        // 재시작 시 진행 중 애니메이션 무효화
+  var display = null;       // 렌더링용 보드(애니메이션 중 로직 상태와 분리)
+  var fx = [];              // 일시적 시각 효과
+
+  function newGame(seed) {
+    animToken++; busy = false; paused = false; sel = null; fx = [];
+    G = L.createGame(seed == null ? (Date.now() & 0x7fffffff) : seed, CFG);
+    display = L.clone(G); Store.set('save', null);
+    closeAll(); show('game'); layout(); render(); updateHud();
+    if (!Store.get('tutorialSeen', false)) { openRules(true); Store.set('tutorialSeen', true); }
+  }
+  function continueGame() {
+    var s = Store.get('save', null); if (!s) return;
+    animToken++; busy = false; paused = false; sel = null; fx = [];
+    G = s; G.cfg = CFG; display = L.clone(G); show('game'); layout(); render(); updateHud();
+  }
+
+  /* ---------- 화면 전환 ---------- */
+  function show(id) { ['menu', 'game', 'gallery'].forEach(function (s) { $(s).classList.toggle('on', s === id); }); if (id === 'menu') menuRefresh(); if (id === 'gallery') renderGallery(); }
+  function closeAll() { ['ovPause', 'ovSettings', 'ovRules', 'ovOver', 'ovZoom'].forEach(function (o) { $(o).classList.remove('on'); }); }
+  function menuRefresh() {
+    $('menuRec').textContent = '최고 기록 ' + stats.bestScore.toLocaleString() + '점 · 최고 콤보 ' + stats.bestCombo + ' · 누적 ' + stats.totalScore.toLocaleString() + '점';
+    var s = Store.get('save', null); $('btnContinue').disabled = !(s && !s.over);
+  }
+
+  /* ---------- 경기장 렌더링 (SVG) ---------- */
+  var geo = { size: 300, cx: 150, cy: 150, radii: [60, 95, 130], cr: 15 };
+  function layout() {
+    var w = $('boardWrap'), sz = Math.max(200, Math.min(w.clientWidth, w.clientHeight) - 4);
+    geo.size = sz; geo.cx = geo.cy = sz / 2; var R = sz / 2 - 4;
+    geo.radii = [R * 0.42, R * 0.67, R * 0.90]; geo.cr = Math.max(12, R * 0.105);
+    var b = $('board'); b.setAttribute('width', sz); b.setAttribute('height', sz); b.setAttribute('viewBox', '0 0 ' + sz + ' ' + sz);
+  }
+  function xy(p) { var a = (L.slotOf(p) / L.SLOTS) * Math.PI * 2 - Math.PI / 2, r = geo.radii[L.ringOf(p)]; return [geo.cx + Math.cos(a) * r, geo.cy + Math.sin(a) * r]; }
+  function circleSVG(cx, cy, r, color, pol, extra) {
+    // 극성은 색이 아니라 글자(N/S) + 도형(N=삼각형 테두리, S=사각 테두리)으로도 구분
+    var shape = pol === 'N'
+      ? '<polygon points="' + cx + ',' + (cy - r * 0.95) + ' ' + (cx + r * 0.82) + ',' + (cy + r * 0.55) + ' ' + (cx - r * 0.82) + ',' + (cy + r * 0.55) + '" fill="none" stroke="#0b1430" stroke-width="2" opacity=".55"/>'
+      : '<rect x="' + (cx - r * 0.62) + '" y="' + (cy - r * 0.62) + '" width="' + r * 1.24 + '" height="' + r * 1.24 + '" fill="none" stroke="#0b1430" stroke-width="2" opacity=".55"/>';
+    return '<g ' + (extra || '') + '><circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + COLORHEX[color] + '" stroke="' + (pol === 'N' ? '#22e6ff' : '#ff3bd4') + '" stroke-width="3"/>' + shape +
+      '<text x="' + cx + '" y="' + (cy + r * 0.38) + '" text-anchor="middle" font-size="' + (r * 1.05) + '" font-weight="900" fill="#0b1430" pointer-events="none">' + pol + '</text></g>';
+  }
+  function render() {
+    if (!display) return;
+    var h = [], st = display, i, p;
+    // 궤도 + 점유율 호
+    for (i = 0; i < L.RINGS; i++) {
+      var cnt = 0; for (var s = 0; s < L.SLOTS; s++) if (st.cells[L.pos(i, s)] !== null) cnt++;
+      var rr = geo.radii[i];
+      h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + rr + '" fill="none" stroke="' + ['#ffc940', '#ff3bd4', '#22e6ff'][i] + '" stroke-opacity=".35" stroke-width="2"/>');
+      var frac = cnt / L.SLOTS, ro = rr + geo.cr + 3, circ = 2 * Math.PI * ro;
+      if (i === L.RINGS - 1 || true) h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + (rr + geo.cr * 0.0) + '" fill="none" stroke="' + (frac > 0.75 ? '#ff4b5c' : '#22e6ff') + '" stroke-opacity=".6" stroke-width="3" stroke-dasharray="' + (2 * Math.PI * rr * frac) + ' 9999" transform="rotate(-90 ' + geo.cx + ' ' + geo.cy + ')"/>');
+      h.push('<text x="' + (geo.cx + 4) + '" y="' + (geo.cy - rr + geo.cr + 14) + '" font-size="11" fill="#9aa7d1" text-anchor="middle">' + 'R' + (i + 1) + ' ' + cnt + '/12</text>');
+    }
+    // 자기장 코어
+    h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + geo.radii[0] * 0.38 + '" fill="url(#core)"/>');
+    h.push('<defs><radialGradient id="core"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#22e6ff"/><stop offset="1" stop-color="#ff3bd4" stop-opacity=".1"/></radialGradient></defs>');
+    // 슬롯
+    var canAct = !busy && !paused && G && !G.over;
+    for (p = 0; p < L.N_POS; p++) {
+      var c = xy(p), id = st.cells[p];
+      if (id === null) {
+        var isSel = sel && sel.kind === 'empty' && sel.p === p;
+        h.push('<circle data-p="' + p + '" cx="' + c[0] + '" cy="' + c[1] + '" r="' + geo.cr + '" fill="' + (isSel ? 'rgba(34,230,255,.35)' : 'rgba(34,230,255,.07)') + '" stroke="' + (isSel ? '#fff' : '#22e6ff') + '" stroke-opacity="' + (canAct ? .6 : .2) + '" stroke-dasharray="' + (isSel ? '' : '3 3') + '" stroke-width="' + (isSel ? 3 : 1.5) + '" style="cursor:pointer"/>');
+        if (isSel && G) h.push('<g opacity=".55" pointer-events="none">' + circleSVG(c[0], c[1], geo.cr * 0.8, G.current.color, G.current.pol) + '</g>');
+      }
+    }
+    for (p = 0; p < L.N_POS; p++) {
+      var id2 = st.cells[p]; if (id2 === null) continue;
+      var cc = st.circles[id2], q = xy(p), isS = sel && sel.kind === 'circle' && sel.p === p;
+      if (isS) h.push('<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (geo.cr + 6) + '" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="5 3"/>');
+      h.push(circleSVG(q[0], q[1], geo.cr, cc.color, cc.pol, 'data-p="' + p + '" data-id="' + id2 + '" style="cursor:pointer"'));
+    }
+    fx.forEach(function (f) { h.push(f); });
+    $('board').innerHTML = h.join('');
+    pv('pvCur', G && G.current, 46); pv('pvNext', G && G.next, 34);
+    updateButtons(); updateHint();
+  }
+  function pv(id, piece, s) { $(id).innerHTML = piece ? circleSVG(s / 2, s / 2, s / 2 - 3, piece.color, piece.pol) : ''; }
+  function updateHud() {
+    $('hScore').textContent = G ? G.score.toLocaleString() : 0;
+    $('hBest').textContent = Math.max(stats.bestScore, G ? G.score : 0).toLocaleString();
+    $('hCombo').textContent = G ? G.combo : 0;
+  }
+  function updateButtons() {
+    var ok = G && !G.over && !busy && !paused;
+    $('btnFire').disabled = !(ok && sel && sel.kind === 'empty');
+    $('btnFlip').disabled = !(ok && sel && sel.kind === 'circle');
+    $('btnCancel').disabled = !(ok && sel);
+  }
+  function updateHint() {
+    var t;
+    if (!G) t = '';
+    else if (G.over) t = '게임 오버 — 입력이 차단되었습니다.';
+    else if (busy) t = '자기장 처리 중… (입력 잠금)';
+    else if (!sel) t = '① 빈 칸(점선)을 눌러 <b>발사 위치</b>를 고르거나, ② 놓인 원을 눌러 <b>극성 전환 대상</b>을 고르세요. 한 턴에 하나만!';
+    else if (sel.kind === 'empty') t = '현재 원(' + COLORKR[G.current.color] + ' ' + G.current.pol + ')을 이 칸에 놓으려면 <b>🚀 발사</b>. 취소하려면 ✕.';
+    else { var c = display.circles[display.cells[sel.p]]; t = '선택한 원: ' + COLORKR[c.color] + ' ' + c.pol + ' → <b>⇅ 극성 전환</b>하면 ' + (c.pol === 'N' ? 'S' : 'N') + '가 되고 주변 원이 움직입니다.'; }
+    $('hint').innerHTML = t;
+  }
+
+  /* ---------- 입력 처리 (pointer events = 터치+마우스) ---------- */
+  $('board').addEventListener('pointerup', function (e) {
+    if (!G || G.over || busy || paused) return;
+    var t = e.target.closest('[data-p]'); if (!t) return;
+    var p = +t.getAttribute('data-p');
+    if (G.cells[p] === null) sel = (sel && sel.kind === 'empty' && sel.p === p) ? null : { kind: 'empty', p: p };
+    else sel = (sel && sel.kind === 'circle' && sel.p === p) ? null : { kind: 'circle', p: p };
+    audio(); render();
+  });
+  function doAction(kind) {
+    if (!G || G.over || busy || paused || !sel) return;
+    var res;
+    if (kind === 'fire') { if (sel.kind !== 'empty' || G.cells[sel.p] !== null) return; SFX.fire(); vib(15); res = L.place(G, sel.p); }
+    else { if (sel.kind !== 'circle') return; SFX.flip(); vib(25); res = L.flip(G, G.cells[sel.p]); }
+    if (!res.ok) { toast('이 위치에는 둘 수 없습니다'); return; }
+    sel = null; busy = true; playEvents(res.events);
+  }
+  $('btnFire').onclick = function () { doAction('fire'); };
+  $('btnFlip').onclick = function () { doAction('flip'); };
+  $('btnCancel').onclick = function () { if (!busy) { sel = null; render(); } };
+
+  /* ---------- UI 애니메이션: 로직이 낸 이벤트를 순서대로 재생 ----------
+     실제 상태(G)는 이미 확정됨. display 는 이벤트에 따라 단계적으로 갱신되는 '보기용' 복사본.
+     재생이 모두 끝날 때까지 busy=true 로 입력/중복 판정 차단. */
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, settings.rm ? Math.min(ms, 60) : ms); }); }
+  function animateMoves(moves, tok) {
+    return new Promise(function (resolve) {
+      if (!moves.length) return resolve();
+      var dur = settings.rm ? 1 : 260, t0 = performance.now();
+      var from = moves.map(function (m) { return xy(m.from); }), to = moves.map(function (m) { return xy(m.to); });
+      moves.forEach(function (m) { display.cells[m.from] = null; });
+      function frame(now) {
+        if (tok !== animToken) return resolve();
+        var k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        fx = moves.map(function (m, i) {
+          var c = display.circles[m.id], x = from[i][0] + (to[i][0] - from[i][0]) * e, y = from[i][1] + (to[i][1] - from[i][1]) * e;
+          return circleSVG(x, y, geo.cr, c.color, c.pol);
+        });
+        render();
+        if (k < 1) requestAnimationFrame(frame);
+        else { moves.forEach(function (m) { display.cells[m.to] = m.id; display.circles[m.id].ring = L.ringOf(m.to); display.circles[m.id].slot = L.slotOf(m.to); }); fx = []; render(); resolve(); }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+  async function playEvents(events) {
+    var tok = animToken;
+    for (var i = 0; i < events.length; i++) {
+      if (tok !== animToken) return;
+      var ev = events[i];
+      if (ev.type === 'place') { var cc = G.circles[ev.id] || { color: display && 'blue', pol: 'N' }; display.circles[ev.id] = { id: ev.id, color: findColor(events, ev.id), pol: findPol(events, ev.id), ring: L.ringOf(ev.at), slot: L.slotOf(ev.at) }; display.cells[ev.at] = ev.id; render(); await wait(140); }
+      else if (ev.type === 'flip') { display.circles[ev.id].pol = ev.to; var q = xy(L.posOfId(display, ev.id)); fx = ['<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + geo.cr * 2.2 + '" fill="none" stroke="#ff3bd4" stroke-width="3" opacity=".7"/>']; render(); await wait(200); fx = []; }
+      else if (ev.type === 'pulse') {
+        if (ev.moves.some(function (m) { return m.type === 'attract'; })) SFX.attract();
+        if (ev.moves.some(function (m) { return m.type === 'repel'; })) SFX.repel();
+        await animateMoves(ev.moves, tok);
+        if (ev.blocked.length) { SFX.bump(); fx = ev.blocked.map(function (b) { var a = xy(b.at), w = xy(b.want); return '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + ((a[0] + w[0]) / 2) + '" y2="' + ((a[1] + w[1]) / 2) + '" stroke="#ffc940" stroke-width="3" stroke-dasharray="4 3"/><text x="' + a[0] + '" y="' + (a[1] - geo.cr - 3) + '" font-size="12" fill="#ffc940" text-anchor="middle">✕</text>'; }); render(); await wait(220); fx = []; render(); }
+      }
+      else if (ev.type === 'settle') { await animateMoves(ev.moves, tok); }
+      else if (ev.type === 'clear') {
+        fx = ev.ids.map(function (id) { var q = xy(L.posOfId(display, id)); return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + geo.cr * 1.4 + '" fill="none" stroke="#fff" stroke-width="4"/>'; });
+        render(); SFX.clear(ev.combo); vib(30);
+        toast((ev.combo >= 2 ? ev.combo + ' COMBO! ' : '') + ev.ids.length + '개 소거 +' + ev.points.toLocaleString());
+        await wait(300);
+        ev.ids.forEach(function (id) { var p = L.posOfId(display, id); display.cells[p] = null; delete display.circles[id]; });
+        fx = []; display.score = (display.score || 0) + ev.points; $('hScore').textContent = display.score.toLocaleString(); $('hCombo').textContent = ev.combo; render(); await wait(120);
+      }
+      else if (ev.type === 'chainCap') toast('연쇄 최대 ' + CFG.MAX_CHAIN + '단계 도달 — 턴 종료');
+    }
+    if (tok !== animToken) return;
+    display = L.clone(G); busy = false; finishTurn();
+  }
+  function findColor(events, id) { return G.circles[id] ? G.circles[id].color : lastPieceColor; }
+  function findPol(events, id) { return G.circles[id] ? G.circles[id].pol : lastPiecePol; }
+  var lastPieceColor = 'blue', lastPiecePol = 'N';
+  // place 전에 현재 원 정보 저장 (소거되어 G 에 없을 수 있음)
+  var _place = L.place; L = Object.assign({}, L, { place: function (st, p) { lastPieceColor = st.current.color; lastPiecePol = st.current.pol; return _place(st, p); } });
+
+  function finishTurn() {
+    if (G.score > stats.bestScore) stats.bestScore = G.score;
+    if (G.combo > stats.bestCombo) stats.bestCombo = G.combo;
+    Store.set('stats', stats); checkRewards();
+    updateHud(); render();
+    if (G.over) gameOver(); else Store.set('save', G);
+  }
+  function gameOver() {
+    stats.totalScore += G.score; Store.set('stats', stats); Store.set('save', null); checkRewards();
+    SFX.over(); vib([60, 40, 60]);
+    $('overBody').innerHTML = (G.overReason || '') + '<br><br>최종 점수 <b>' + G.score.toLocaleString() + '</b><br>최고 점수 <b>' + stats.bestScore.toLocaleString() + '</b><br>이번 게임 최고 콤보 <b>' + G.maxCombo + '</b>';
+    $('ovOver').classList.add('on'); render();
+  }
+  /* 누적 점수는 게임 오버 시 합산되지만, 진행 중 해금 판정을 위해 현재 판 점수를 더해 평가 */
+  function checkRewards() {
+    var live = { totalScore: stats.totalScore + (G && !G.over ? G.score : 0), bestScore: stats.bestScore, bestCombo: stats.bestCombo };
+    var newly = window.PoleRewards.evaluate(CFG.REWARDS, live, unlocked);
+    if (newly.length) {
+      Store.set('unlocked', unlocked); SFX.unlock(); vib([30, 30, 80]);
+      newly.forEach(function (id) { var r = CFG.REWARDS.filter(function (x) { return x.id === id; })[0]; toast('★ 갤러리 해금: ' + r.title, true); });
+      justUnlocked = newly;
+    }
+  }
+  var justUnlocked = [];
+
+  /* ---------- 토스트 ---------- */
+  function toast(msg, gold) { var d = document.createElement('div'); d.className = 'tmsg' + (gold ? ' gold' : ''); d.textContent = msg; $('toast').appendChild(d); setTimeout(function () { d.remove(); }, settings.rm ? 1400 : 950); }
+
+  /* ---------- 갤러리 ---------- */
+  function condText(c) { return c.type === 'totalScore' ? '누적 총점 ' + c.value.toLocaleString() + '점' : c.type === 'maxCombo' ? c.value + '콤보 달성' : '한 게임 ' + c.value.toLocaleString() + '점'; }
+  function condVal(c) { return c.type === 'totalScore' ? stats.totalScore : c.type === 'maxCombo' ? stats.bestCombo : stats.bestScore; }
+  function abstractArt(hue, locked, rare) {
+    // 자체 제작 추상 카드 (궤도/자기장 패턴). 인물 형상 없음.
+    var h2 = (hue + 60) % 360;
+    return '<svg viewBox="0 0 300 400" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="g' + hue + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(' + hue + ',70%,22%)"/><stop offset="1" stop-color="hsl(' + h2 + ',70%,12%)"/></linearGradient></defs>' +
+      '<rect width="300" height="400" fill="url(#g' + hue + ')"/>' +
+      [150, 110, 70].map(function (r, i) { return '<ellipse cx="150" cy="200" rx="' + r + '" ry="' + r * 1.25 + '" fill="none" stroke="hsl(' + (hue + i * 40) + ',90%,65%)" stroke-opacity=".5" stroke-width="2" transform="rotate(' + (i * 25) + ' 150 200)"/>'; }).join('') +
+      '<circle cx="150" cy="200" r="26" fill="hsl(' + hue + ',90%,70%)" opacity=".8"/>' +
+      (rare ? '<rect x="6" y="6" width="288" height="388" rx="18" fill="none" stroke="#ffc940" stroke-width="5"/>' : '') +
+      (locked ? '<rect width="300" height="400" fill="rgba(3,6,18,.62)"/>' : '') + '</svg>';
+  }
+  function imgFor(rid) { return window.POLESHIFT_GALLERY_IMAGES.filter(function (x) { return x.rewardId === rid; })[0] || { src: '', alt: '', hue: 200 }; }
+  function mediaHTML(r, locked) {
+    var im = imgFor(r.id), art = abstractArt(im.hue || 200, locked, r.rare);
+    if (!locked && im.src) return '<img src="' + im.src + '" alt="' + im.alt + '" data-fallback="1">' ;
+    return art + (locked ? '<span class="lock" aria-label="잠김">🔒</span>' : '');
+  }
+  function bindFallback(root) {
+    root.querySelectorAll('img[data-fallback]').forEach(function (img) {
+      var swap = function () { var rid = img.closest('[data-rid]'); var r = rid ? CFG.REWARDS.filter(function (x) { return x.id === rid.getAttribute('data-rid'); })[0] : null; img.outerHTML = abstractArt(r ? imgFor(r.id).hue : 200, false, r && r.rare); };
+      img.addEventListener('error', swap, { once: true }); if (img.complete && img.naturalWidth === 0) swap();
+    });
+  }
+  function renderGallery() {
+    var n = CFG.REWARDS.filter(function (r) { return unlocked[r.id]; }).length;
+    $('galStats').textContent = '해금 ' + n + '/' + CFG.REWARDS.length + ' · 누적 ' + stats.totalScore.toLocaleString() + '점 · 최고 ' + stats.bestScore.toLocaleString() + '점 · 최고 콤보 ' + stats.bestCombo;
+    $('galGrid').innerHTML = CFG.REWARDS.map(function (r) {
+      var u = !!unlocked[r.id], pr = Math.min(1, condVal(r.cond) / r.cond.value);
+      return '<button class="gcard' + (u ? ' un' : '') + (justUnlocked.indexOf(r.id) >= 0 ? ' unlockAnim' : '') + '" data-rid="' + r.id + '"><div class="gimg">' + mediaHTML(r, !u) + '</div><div class="ginfo"><b>' + (u ? '★ ' : '🔒 ') + r.title + (r.rare ? ' <span style="color:#ffc940">RARE</span>' : '') + '</b>' + (u ? '해금됨' : '잠김') + ' · ' + condText(r.cond) + '<div class="bar"><i style="width:' + (pr * 100) + '%"></i></div>' + Math.min(condVal(r.cond), r.cond.value).toLocaleString() + ' / ' + r.cond.value.toLocaleString() + '</div></button>';
+    }).join('');
+    justUnlocked = [];
+    bindFallback($('galGrid'));
+    $('galGrid').querySelectorAll('.gcard').forEach(function (b) { b.onclick = function () { zoom(b.getAttribute('data-rid')); }; });
+  }
+  function zoom(rid) {
+    var r = CFG.REWARDS.filter(function (x) { return x.id === rid; })[0], u = !!unlocked[rid];
+    $('zTitle').textContent = (u ? '★ ' : '🔒 ') + r.title;
+    $('zoomImg').setAttribute('data-rid', rid); $('zoomImg').innerHTML = mediaHTML(r, !u); bindFallback($('zoomImg'));
+    $('zDesc').textContent = u ? '해금 완료한 POLESHIFT GALLERY 보상입니다.' : '해금 조건: ' + condText(r.cond) + ' (현재 ' + Math.min(condVal(r.cond), r.cond.value).toLocaleString() + ')';
+    $('ovZoom').classList.add('on');
+  }
+  var galleryReturn = 'menu';
+
+  /* ---------- 규칙 / 튜토리얼 ---------- */
+  var RULES = [
+    '<p><b>POLESHIFT</b>는 3개의 원형 궤도(각 12칸, 총 36칸)에서 원을 배치하고 <b>극성(N/S)</b>을 뒤집어 같은 색 원을 모아 소거하는 퍼즐입니다.</p><p>원 안의 글자와 도형으로 극성을 구분합니다: <b>N = 삼각형 · 시안 테두리</b>, <b>S = 사각형 · 마젠타 테두리</b>.</p>',
+    '<p><b>한 턴에 행동 하나</b>만 합니다.</p><ul><li><b>발사</b>: 빈 칸(점선)을 터치 → 🚀 발사. 현재 원이 그 칸에 놓입니다.</li><li><b>극성 전환</b>: 놓인 원을 터치 → ⇅ 극성 전환. N↔S가 바뀝니다.</li><li>✕ 취소는 처리 시작 전까지 선택을 해제합니다.</li></ul>',
+    '<p><b>자기장</b>: 배치/전환된 원(기준)으로부터 2칸 이내의 원이 반응합니다.</p><ul><li>반대 극성 → 기준 쪽 빈 칸으로 <b>끌려옴</b></li><li>같은 극성 → 기준 반대쪽 빈 칸으로 <b>밀려남</b></li><li>펄스마다 최대 1칸, 한 턴 최대 3펄스. 막히면 제자리(노란 ✕ 표시).</li></ul>',
+    '<p><b>소거</b>: 같은 색 원 3개 이상이 인접(같은 궤도 옆 칸, 또는 안/바깥 궤도의 같은 각도)으로 연결되면 사라집니다. 극성은 상관없습니다.</p><p>소거 후 남은 원은 코어 쪽으로 한 칸씩 끌려가며, 새 연결이 생기면 <b>연쇄(콤보)</b>! 최대 10단계.</p>',
+    '<p><b>점수</b> = Σ(원 수×100 + 크기 보너스) × 콤보 배율</p><ul><li>4개: +100, 5개 이상: +100+(n−4)×200</li><li>콤보 배율 = 1 + 0.5×(콤보−1)</li></ul><p>빈 칸이 없어지면 게임 오버. 점수와 콤보로 <b>POLESHIFT GALLERY</b> 보상을 해금하세요!</p>'
+  ];
+  var rIdx = 0;
+  function openRules() { rIdx = 0; drawRules(); $('ovRules').classList.add('on'); }
+  function drawRules() { $('rulesBody').innerHTML = '<p style="color:#9aa7d1">' + (rIdx + 1) + ' / ' + RULES.length + '</p>' + RULES[rIdx]; $('rPrev').disabled = rIdx === 0; $('rNext').textContent = rIdx === RULES.length - 1 ? '시작하기' : '다음'; }
+  $('rPrev').onclick = function () { if (rIdx > 0) { rIdx--; drawRules(); } };
+  $('rNext').onclick = function () { if (rIdx < RULES.length - 1) { rIdx++; drawRules(); } else $('ovRules').classList.remove('on'); };
+
+  /* ---------- 설정 ---------- */
+  function drawSettings() {
+    $('sSound').textContent = settings.sound ? '🔊 켜짐' : '🔇 꺼짐';
+    $('sVib').textContent = settings.vib ? '📳 켜짐' : '꺼짐';
+    $('sRM').textContent = settings.rm ? '✔ 켜짐' : '꺼짐';
+    document.body.classList.toggle('rm', settings.rm);
+  }
+  $('sSound').onclick = function () { settings.sound = !settings.sound; if (!settings.sound && actx) { try { actx.suspend(); } catch (e) {} } Store.set('settings', settings); drawSettings(); };
+  $('sVib').onclick = function () { settings.vib = !settings.vib; Store.set('settings', settings); drawSettings(); };
+  $('sRM').onclick = function () { settings.rm = !settings.rm; Store.set('settings', settings); drawSettings(); };
+  $('sClose').onclick = function () { $('ovSettings').classList.remove('on'); };
+
+  /* ---------- 메뉴/버튼 연결 ---------- */
+  $('btnStart').onclick = function () { audio(); newGame(); };
+  $('btnContinue').onclick = function () { audio(); continueGame(); };
+  $('btnGallery').onclick = function () { galleryReturn = 'menu'; show('gallery'); };
+  $('btnHow').onclick = openRules;
+  $('btnSettings').onclick = function () { $('ovSettings').classList.add('on'); };
+  $('btnPause').onclick = function () { if (G && G.over) return; paused = true; $('ovPause').classList.add('on'); render(); };
+  $('pResume').onclick = function () { paused = false; $('ovPause').classList.remove('on'); render(); };
+  $('pRestart').onclick = function () { newGame(); };
+  $('pRules').onclick = openRules;
+  $('pSettings').onclick = function () { $('ovSettings').classList.add('on'); };
+  $('pMenu').onclick = function () { animToken++; busy = false; paused = false; if (G && !G.over) Store.set('save', G); closeAll(); show('menu'); };
+  $('oRestart').onclick = function () { newGame(); };
+  $('oMenu').onclick = function () { closeAll(); show('menu'); };
+  $('oGallery').onclick = function () { closeAll(); galleryReturn = 'menu'; show('gallery'); };
+  $('galBack').onclick = function () { show(galleryReturn); };
+  $('zClose').onclick = function () { $('ovZoom').classList.remove('on'); };
+
+  window.addEventListener('resize', function () { drawStars(); if ($('game').classList.contains('on')) { layout(); render(); } });
+  drawStars(); drawSettings(); menuRefresh();
+  // 재현 가능한 테스트용: URL ?seed=123 이면 해당 시드로 시작 (디버그 UI 노출 없음)
+  var m = /[?&]seed=(\d+)/.exec(location.search); if (m) $('btnStart').onclick = function () { audio(); newGame(+m[1]); };
+})();
+</script>
+</body>
+</html>
