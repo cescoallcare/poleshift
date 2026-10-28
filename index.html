@@ -74,6 +74,16 @@ body.rm .tmsg{animation:none}
 @keyframes unl{0%{transform:scale(.6) rotate(-6deg);opacity:0}60%{transform:scale(1.06)}100%{transform:none;opacity:1}}
 body.rm .unlockAnim{animation:none}
 #zoomImg{width:100%;aspect-ratio:3/4;border-radius:14px;overflow:hidden}
+/* tutorial */
+#tutPanel{position:fixed;left:8px;right:8px;top:max(8px,env(safe-area-inset-top));z-index:25;display:none;background:linear-gradient(160deg,#16265a,#0a1230);border:2px solid var(--gold);border-radius:18px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.6);max-width:560px;margin:0 auto}
+#tutPanel.on{display:block}
+#tutPanel .tstep{font-size:13px;color:var(--gold);font-weight:800;letter-spacing:.05em}
+#tutPanel .ttext{font-size:17px;line-height:1.45;margin:6px 0 10px}
+#tutPanel .trow{display:flex;gap:8px}#tutPanel .trow button{flex:1;min-height:46px;font-size:16px}
+.tutGlow{box-shadow:0 0 0 3px #ffc940,0 0 18px rgba(255,201,64,.8)!important;animation:tg 1.1s ease-in-out infinite}
+@keyframes tg{50%{box-shadow:0 0 0 5px #ffc940,0 0 26px rgba(255,201,64,1)}}
+body.rm .tutGlow{animation:none}
+body.tut #toast{top:52%}
 @media (max-height:700px){.stat b{font-size:16px}.ctrl button{min-height:44px}#formula{display:none}}
 </style>
 </head>
@@ -103,6 +113,7 @@ body.rm .unlockAnim{animation:none}
     <button class="pri" id="btnStart">▶ 게임 시작</button>
     <button id="btnContinue">⟲ 이어하기</button>
     <button class="gold" id="btnGallery">★ 갤러리</button>
+    <button class="gold" id="btnTut">🎓 튜토리얼</button>
     <button id="btnHow">? 게임 방법</button>
     <button id="btnSettings">⚙ 설정</button>
   </div>
@@ -139,9 +150,12 @@ body.rm .unlockAnim{animation:none}
 </section>
 
 <!-- ===================== OVERLAYS ===================== -->
+<div id="tutPanel" role="dialog" aria-live="polite"><div class="tstep" id="tutStep"></div><div class="ttext" id="tutText"></div>
+  <div class="trow"><button id="tutSkip">건너뛰기</button><button class="pri" id="tutNext">다음</button></div></div>
 <div class="ov" id="ovPause"><div class="card"><h2>일시정지</h2>
   <div class="row"><button class="pri" id="pResume">계속하기</button></div>
   <div class="row"><button id="pRestart">재시작</button><button id="pRules">규칙</button></div>
+  <div class="row"><button class="gold" id="pTut">🎓 튜토리얼</button></div>
   <div class="row"><button id="pSettings">설정</button><button id="pMenu">메인 메뉴</button></div>
 </div></div>
 <div class="ov" id="ovSettings"><div class="card"><h2>설정</h2>
@@ -508,11 +522,11 @@ var POLESHIFT_GALLERY_IMAGES = [
   var fx = [];              // 일시적 시각 효과
 
   function newGame(seed) {
+    TUT = null; $('tutPanel').classList.remove('on'); document.body.classList.remove('tut');
     animToken++; busy = false; paused = false; sel = null; fx = [];
     G = L.createGame(seed == null ? (Date.now() & 0x7fffffff) : seed, CFG);
     display = L.clone(G); Store.set('save', null);
     closeAll(); show('game'); layout(); render(); updateHud();
-    if (!Store.get('tutorialSeen', false)) { openRules(true); Store.set('tutorialSeen', true); }
   }
   function continueGame() {
     var s = Store.get('save', null); if (!s) return;
@@ -577,6 +591,7 @@ var POLESHIFT_GALLERY_IMAGES = [
       h.push(circleSVG(q[0], q[1], geo.cr, cc.color, cc.pol, 'data-p="' + p + '" data-id="' + id2 + '" style="cursor:pointer"'));
     }
     fx.forEach(function (f) { h.push(f); });
+    if (TUT) h.push(tutHighlight());
     $('board').innerHTML = h.join('');
     pv('pvCur', G && G.current, 46); pv('pvNext', G && G.next, 34);
     updateButtons(); updateHint();
@@ -588,12 +603,14 @@ var POLESHIFT_GALLERY_IMAGES = [
     $('hCombo').textContent = G ? G.combo : 0;
   }
   function updateButtons() {
+    if (TUT) return tutButtons();
     var ok = G && !G.over && !busy && !paused;
     $('btnFire').disabled = !(ok && sel && sel.kind === 'empty');
     $('btnFlip').disabled = !(ok && sel && sel.kind === 'circle');
     $('btnCancel').disabled = !(ok && sel);
   }
   function updateHint() {
+    if (TUT) { $('hint').innerHTML = '🎓 튜토리얼 진행 중 — 위 안내를 따라 하세요'; return; }
     var t;
     if (!G) t = '';
     else if (G.over) t = '게임 오버 — 입력이 차단되었습니다.';
@@ -609,6 +626,7 @@ var POLESHIFT_GALLERY_IMAGES = [
     if (!G || G.over || busy || paused) return;
     var t = e.target.closest('[data-p]'); if (!t) return;
     var p = +t.getAttribute('data-p');
+    if (TUT) { tutTap(p); return; }
     if (G.cells[p] === null) sel = (sel && sel.kind === 'empty' && sel.p === p) ? null : { kind: 'empty', p: p };
     else sel = (sel && sel.kind === 'circle' && sel.p === p) ? null : { kind: 'circle', p: p };
     audio(); render();
@@ -683,6 +701,7 @@ var POLESHIFT_GALLERY_IMAGES = [
   var _place = L.place; L = Object.assign({}, L, { place: function (st, p) { lastPieceColor = st.current.color; lastPiecePol = st.current.pol; return _place(st, p); } });
 
   function finishTurn() {
+    if (TUT) { updateHud(); render(); tutAfterTurn(); return; }
     if (G.score > stats.bestScore) stats.bestScore = G.score;
     if (G.combo > stats.bestCombo) stats.bestCombo = G.combo;
     Store.set('stats', stats); checkRewards();
@@ -782,7 +801,7 @@ var POLESHIFT_GALLERY_IMAGES = [
   $('sClose').onclick = function () { $('ovSettings').classList.remove('on'); };
 
   /* ---------- 메뉴/버튼 연결 ---------- */
-  $('btnStart').onclick = function () { audio(); newGame(); };
+  $('btnStart').onclick = function () { audio(); if (!Store.get('tutorialSeen', false)) startTutorial(true); else newGame(); };
   $('btnContinue').onclick = function () { audio(); continueGame(); };
   $('btnGallery').onclick = function () { galleryReturn = 'menu'; show('gallery'); };
   $('btnHow').onclick = openRules;
@@ -792,12 +811,78 @@ var POLESHIFT_GALLERY_IMAGES = [
   $('pRestart').onclick = function () { newGame(); };
   $('pRules').onclick = openRules;
   $('pSettings').onclick = function () { $('ovSettings').classList.add('on'); };
-  $('pMenu').onclick = function () { animToken++; busy = false; paused = false; if (G && !G.over) Store.set('save', G); closeAll(); show('menu'); };
+  $('pMenu').onclick = function () { animToken++; busy = false; paused = false; if (TUT) { TUT = null; $('tutPanel').classList.remove('on'); document.body.classList.remove('tut'); } else if (G && !G.over) Store.set('save', G); closeAll(); show('menu'); };
   $('oRestart').onclick = function () { newGame(); };
   $('oMenu').onclick = function () { closeAll(); show('menu'); };
   $('oGallery').onclick = function () { closeAll(); galleryReturn = 'menu'; show('gallery'); };
   $('galBack').onclick = function () { show(galleryReturn); };
   $('zClose').onclick = function () { $('ovZoom').classList.remove('on'); };
+
+  /* =================== 인터랙티브 튜토리얼 ===================
+     고정 프리셋 보드에서 진행. 각 단계는 허용된 행동(특정 칸 탭/특정 버튼)만 받는다.
+     튜토리얼 점수/기록은 저장·해금에 반영하지 않는다. */
+  var TUT = null;
+  // 프리셋: 위치 = 궤도*12 + 칸.  R2(가운데 궤도)=12~23, R3(바깥)=24~35
+  var TUT_STEPS = [
+    { text: '<b>POLESHIFT</b>에 오신 걸 환영해요! 원을 놓고 <b>극성(N/S)</b>을 뒤집어 같은 색 3개를 모아 없애는 게임이에요.<br>연습 판에서 직접 해 봐요.', next: true },
+    { text: '① 화면 아래 <b>현재 원(파랑 N)</b>을 확인하고, 노란 화살표가 가리키는 <b>빈 칸</b>을 탭하세요.', tap: 13, piece: { color: 'blue', pol: 'N' } },
+    { text: '② 좋아요! 이제 반짝이는 <b>🚀 발사</b> 버튼을 누르세요.', act: 'fire' },
+    { text: '③ <b>자기장 반응!</b><br>• 극성이 <b>반대(N↔S)</b>인 빨강 S는 <b>끌려왔고</b><br>• 극성이 <b>같은(N↔N)</b> 빨강 N은 <b>밀려났어요</b>.<br>놓은 원에서 2칸 이내의 원이 한 번에 1칸씩, 최대 3번 움직여요.', next: true },
+    { text: '④ 이번엔 <b>이미 놓인 원</b>을 골라요. 화살표가 가리키는 <b>파랑 N</b> 원을 탭하세요.', tapCircle: 13 },
+    { text: '⑤ 반짝이는 <b>⇅ 극성 전환</b>을 누르세요. N이 S로 바뀌면서 주변 원이 다시 움직여요.', act: 'flip' },
+    { text: '⑥ 파랑이 <b>S</b>가 되자 이웃한 <b>같은 극성 빨강 S</b>가 밀려났어요. 자기장은 <b>2칸 이내</b>에만 미쳐서 멀리 있는 빨강 N은 그대로예요.<br>한 턴에는 <b>발사 또는 극성 전환 중 하나만</b> 할 수 있어요.', next: true },
+    { text: '⑦ 이제 소거! 바깥 궤도에 <b>노랑 2개</b>가 붙어 있어요. 현재 원은 <b>노랑 N</b>. 화살표가 가리키는 칸을 탭하세요.', tap: 32, piece: { color: 'yellow', pol: 'N' } },
+    { text: '⑧ <b>🚀 발사</b>! 같은 색 3개가 이어지면 사라져요.', act: 'fire' },
+    { text: '⑨ <b>소거 성공! +300점</b><br>같은 색이 옆 칸이나 안/바깥 궤도 같은 각도로 <b>3개 이상</b> 이어지면 사라져요. 극성은 상관없어요.', next: true },
+    { text: '⑩ <b>콤보와 점수</b><br>소거 후 남은 원은 코어 쪽으로 당겨지고, 새로 이어지면 <b>연쇄 콤보</b>! 콤보가 오를수록 배율 ↑ (×1.5, ×2…). 4개 이상 한 번에 지우면 보너스!<br><b>36칸이 모두 차면 게임 오버</b>예요. 이제 실전을 시작해요!', next: true, last: true }
+  ];
+  function startTutorial(thenPlay) {
+    animToken++; busy = false; paused = false; sel = null; fx = [];
+    closeAll(); show('game');
+    G = L.createGame(20261028, CFG);
+    [[12, 'red', 'N'], [15, 'red', 'S'], [30, 'yellow', 'S'], [31, 'yellow', 'S']].forEach(function (a) { L.addCircle(G, a[0], a[1], a[2]); });
+    TUT = { step: 0, thenPlay: !!thenPlay };
+    display = L.clone(G); layout(); tutShow(); updateHud();
+  }
+  function tutCur() { return TUT_STEPS[TUT.step]; }
+  function tutShow() {
+    var st = tutCur();
+    if (st.piece) { G.current = { color: st.piece.color, pol: st.piece.pol }; }
+    $('tutStep').textContent = '튜토리얼 ' + (TUT.step + 1) + ' / ' + TUT_STEPS.length;
+    $('tutText').innerHTML = st.text;
+    $('tutNext').style.display = st.next ? '' : 'none';
+    $('tutNext').textContent = st.last ? (TUT.thenPlay ? '게임 시작!' : '완료') : '다음';
+    $('tutPanel').classList.add('on'); document.body.classList.add('tut');
+    render();
+  }
+  function tutGo() { TUT.step++; tutShow(); }
+  function tutTap(p) {
+    var st = tutCur();
+    if (st.tap != null && p === st.tap && G.cells[p] === null) { sel = { kind: 'empty', p: p }; audio(); tutGo(); }
+    else if (st.tapCircle != null && p === st.tapCircle && G.cells[p] !== null) { sel = { kind: 'circle', p: p }; audio(); tutGo(); }
+  }
+  function tutButtons() {
+    var st = tutCur(), ok = !busy && !paused && sel;
+    $('btnFire').disabled = !(ok && st.act === 'fire'); $('btnFlip').disabled = !(ok && st.act === 'flip'); $('btnCancel').disabled = true;
+    $('btnFire').classList.toggle('tutGlow', !$('btnFire').disabled); $('btnFlip').classList.toggle('tutGlow', !$('btnFlip').disabled);
+  }
+  function tutHighlight() {
+    var st = tutCur(), p = st.tap != null ? st.tap : st.tapCircle;
+    if (p == null || busy) return '';
+    var c = xy(p), r = geo.cr, ax = c[0], ay = c[1] - r - 8;
+    return '<circle cx="' + c[0] + '" cy="' + c[1] + '" r="' + (r + 7) + '" fill="none" stroke="#ffc940" stroke-width="4"/>' +
+      '<polygon points="' + ax + ',' + ay + ' ' + (ax - 11) + ',' + (ay - 20) + ' ' + (ax + 11) + ',' + (ay - 20) + '" fill="#ffc940" stroke="#0b1430" stroke-width="2"/>';
+  }
+  function tutAfterTurn() { if (TUT && tutCur().act) tutGo(); }
+  function tutFinish(skipped) {
+    var then = TUT && TUT.thenPlay; Store.set('tutorialSeen', true);
+    TUT = null; $('tutPanel').classList.remove('on'); document.body.classList.remove('tut'); ['btnFire', 'btnFlip'].forEach(function (b) { $(b).classList.remove('tutGlow'); });
+    if (then) newGame(); else { G = null; display = null; show('menu'); }
+  }
+  $('tutNext').onclick = function () { if (!TUT) return; if (tutCur().last) tutFinish(false); else tutGo(); };
+  $('tutSkip').onclick = function () { if (TUT) tutFinish(true); };
+  $('btnTut').onclick = function () { audio(); startTutorial(false); };
+  $('pTut').onclick = function () { startTutorial(false); };
 
   /* Android 뒤로 가기 처리: 처리했으면 true, 앱 종료해야 하면 false */
   window.poleshiftBack = function () {
@@ -805,13 +890,14 @@ var POLESHIFT_GALLERY_IMAGES = [
     for (var i = 0; i < ovs.length; i++) if ($(ovs[i]).classList.contains('on')) { if (ovs[i] === 'ovPause') $('pResume').onclick(); else $(ovs[i]).classList.remove('on'); return true; }
     if ($('ovOver').classList.contains('on')) { $('oMenu').onclick(); return true; }
     if ($('gallery').classList.contains('on')) { $('galBack').onclick(); return true; }
+    if (TUT) { tutFinish(true); return true; }
     if ($('game').classList.contains('on')) { $('pMenu').onclick(); return true; }
     return false;
   };
   window.addEventListener('resize', function () { drawStars(); if ($('game').classList.contains('on')) { layout(); render(); } });
   drawStars(); drawSettings(); menuRefresh();
   // 재현 가능한 테스트용: URL ?seed=123 이면 해당 시드로 시작 (디버그 UI 노출 없음)
-  var m = /[?&]seed=(\d+)/.exec(location.search); if (m) $('btnStart').onclick = function () { audio(); newGame(+m[1]); };
+  var m = /[?&]seed=(\d+)/.exec(location.search); if (m) $('btnStart').onclick = function () { audio(); if (!Store.get('tutorialSeen', false)) startTutorial(true); else newGame(+m[1]); };
 })();
 </script>
 </body>
