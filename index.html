@@ -799,6 +799,15 @@ var POLESHIFT_GALLERY_IMAGES = [
   $('galBack').onclick = function () { show(galleryReturn); };
   $('zClose').onclick = function () { $('ovZoom').classList.remove('on'); };
 
+  /* Android 뒤로 가기 처리: 처리했으면 true, 앱 종료해야 하면 false */
+  window.poleshiftBack = function () {
+    var ovs = ['ovZoom', 'ovSettings', 'ovRules', 'ovPause'];
+    for (var i = 0; i < ovs.length; i++) if ($(ovs[i]).classList.contains('on')) { if (ovs[i] === 'ovPause') $('pResume').onclick(); else $(ovs[i]).classList.remove('on'); return true; }
+    if ($('ovOver').classList.contains('on')) { $('oMenu').onclick(); return true; }
+    if ($('gallery').classList.contains('on')) { $('galBack').onclick(); return true; }
+    if ($('game').classList.contains('on')) { $('pMenu').onclick(); return true; }
+    return false;
+  };
   window.addEventListener('resize', function () { drawStars(); if ($('game').classList.contains('on')) { layout(); render(); } });
   drawStars(); drawSettings(); menuRefresh();
   // 재현 가능한 테스트용: URL ?seed=123 이면 해당 시드로 시작 (디버그 UI 노출 없음)
