@@ -35,8 +35,10 @@ button.gold{border-color:var(--gold);color:var(--gold)}
 #game{padding-top:max(6px,env(safe-area-inset-top))}
 .hud{display:flex;gap:6px;width:100%;max-width:560px;align-items:stretch}
 .stat{flex:1;background:rgba(15,26,58,.85);border:1px solid #2b3a72;border-radius:12px;padding:4px 6px;text-align:center}
-.stat b{display:block;font-size:19px}
-.stat span{font-size:12px;color:var(--mut)}
+.stat{min-width:0}
+.stat.wide{flex:1.9}
+.stat b{display:block;font-size:clamp(13px,4.4vw,19px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{font-size:11px;color:var(--mut);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hud button{min-height:44px;padding:6px 10px;font-size:15px}
 #boardWrap{flex:1;width:100%;max-width:560px;display:flex;align-items:center;justify-content:center;min-height:0;position:relative}
 #board{touch-action:manipulation;user-select:none}
@@ -257,39 +259,39 @@ var POLESHIFT_CONFIG = {
   },
   /* 난이도: turns=턴 제한 가감, target=목표 점수 배율, obs=장애물 개수 배율, nebEvery=성운 확산 주기(턴) */
   DIFFICULTY: {
-    easy:   { label: '쉬움',   turns: 10, target: 0.8, obs: 0.6, nebEvery: 4 },
-    normal: { label: '보통',   turns: 0,  target: 1,   obs: 1,   nebEvery: 3 },
-    hard:   { label: '어려움', turns: -4, target: 1.15, obs: 1.25, nebEvery: 2 }
+    easy:   { label: '쉬움',   turns: 10, target: 0.8, par: 1.3, obs: 0.6, nebEvery: 4 },
+    normal: { label: '보통',   turns: 0,  target: 1, par: 1,   obs: 1,   nebEvery: 3 },
+    hard:   { label: '어려움', turns: -2, target: 1.08, par: 1.1, obs: 1.25, nebEvery: 2 }
   },
   /* 특수 모드 (스테이지와 같은 칸 형식). turns 0 = 턴 제한 없음, target 0 = 목표 없음(점수 경쟁) */
   MODES: {
-    endless: { label: '무한', turns: 0,  target: 0, colors: 4, pN: 0.5, easyTurns: 4, obs: { nebula: 1 }, dropEvery: { easy: 30, normal: 18, hard: 10 } }, /* dropEvery: N턴마다 성운 1개가 새로 내려와 판을 조여 옴 */
+    endless: { label: '무한', turns: 0,  target: 0, colors: 4, pN: 0.5, easyTurns: 4, obs: { nebula: 1 }, dropEvery: { easy: 30, normal: 18, hard: 10 }, halfLife: 60, multEvery: 100 }, /* dropEvery: N턴마다 성운 1개가 새로 내려와 판을 조여 옴 */
     daily:   { label: '오늘의 도전', turns: 40, target: 0, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 4, nebula: 1, storm: 2 } }
   },
   /* 스테이지 표 (보통 난이도 기준)
      target=목표 점수, turns=턴 제한, colors=행성 종류 수(3~4), pN=N극 비율, easyTurns=처음 몇 턴 2종류만
      obs = { nebula, ice, hole, meteor, storm(칸 수), warp(쌍 수) }
      mission = { type:'combo2'(2콤보 이상 n회) | 'ice'(얼음 n개 깨기) | 'nebula'(성운 모두 제거)
-                       | 'pulsar'(펄서 n회 발동) | 'item'(아이템 n회 발동) | nebula에 n이 있으면 'n개 제거' | 'galaxy'(turns 턴 안에 은하 n개), n, turns } */
+                       | 'pulsar'(펄서 n회 발동) | 'item'(아이템 n회 발동) | nebula에 n이 있으면 'n개 제거' | 'galaxy'(은하 n개; turns>0이면 turns 턴 안에), n, turns } */
   STAGES: [
-    { target: 800, turns: 99, colors: 3, pN: 0.75, easyTurns: 8, obs: {}, mission: { type: 'galaxy', n: 1 } },
-    { target: 1500, turns: 99, colors: 3, pN: 0.65, easyTurns: 4, obs: {}, mission: { type: 'galaxy', n: 2 } },
-    { target: 2500, turns: 99, colors: 3, pN: 0.55, easyTurns: 0, obs: {}, mission: { type: 'galaxy', n: 2 } },
-    { target: 3000, turns: 99, colors: 4, pN: 0.6, easyTurns: 0, obs: { ice: 6 }, mission: { type: 'ice', n: 2 } },
-    { target: 3800, turns: 99, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 8 }, mission: { type: 'ice', n: 2 } },
-    { target: 5000, turns: 80, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 10 }, mission: { type: 'ice', n: 3 } },
-    { target: 5500, turns: 80, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 2 }, mission: { type: 'nebula', n: 1 } },
-    { target: 6200, turns: 80, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 2, ice: 2 }, mission: { type: 'nebula', n: 2 } },
-    { target: 7000, turns: 70, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 3 }, mission: { type: 'combo2', n: 1 } },
-    { target: 7800, turns: 70, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 1 }, mission: { type: 'galaxy', n: 2 } },
-    { target: 8600, turns: 60, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 2, ice: 4 }, mission: { type: 'galaxy', n: 3 } },
-    { target: 9400, turns: 60, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 2, nebula: 2 }, mission: { type: 'combo2', n: 1 } },
-    { target: 10200, turns: 56, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 1, storm: 2 }, mission: { type: 'galaxy', n: 4 } },
-    { target: 11000, turns: 52, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 1, storm: 3, ice: 4 }, mission: { type: 'galaxy', n: 3 } },
-    { target: 11800, turns: 50, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 2, storm: 3 }, mission: { type: 'combo2', n: 1 } },
-    { target: 11500, turns: 48, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 2, nebula: 1 }, mission: { type: 'nebula', n: 1 } },
-    { target: 12300, turns: 46, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 3, hole: 1, warp: 1, ice: 4 }, mission: { type: 'ice', n: 2 } },
-    { target: 13000, turns: 48, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 3, storm: 2, warp: 1, nebula: 2, hole: 1 }, mission: { type: 'galaxy', n: 3 } }
+    { target: 800, turns: 99, par: 6, colors: 3, pN: 0.75, easyTurns: 8, obs: {}, mission: { type: 'galaxy', n: 1 } },
+    { target: 1500, turns: 99, par: 10, colors: 3, pN: 0.65, easyTurns: 4, obs: {}, mission: { type: 'galaxy', n: 2 } },
+    { target: 2500, turns: 99, par: 14, colors: 3, pN: 0.55, easyTurns: 0, obs: {}, mission: { type: 'galaxy', n: 2 } },
+    { target: 3000, turns: 99, par: 19, colors: 4, pN: 0.6, easyTurns: 0, obs: { ice: 6 }, mission: { type: 'ice', n: 1 } },
+    { target: 3800, turns: 99, par: 20, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 8 }, mission: { type: 'ice', n: 2 } },
+    { target: 5000, turns: 52, par: 21, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 10 }, mission: { type: 'ice', n: 2 } },
+    { target: 5600, turns: 50, par: 22, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 2 }, mission: { type: 'nebula', n: 1 } },
+    { target: 6300, turns: 48, par: 23, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 2, ice: 2 }, mission: { type: 'nebula', n: 2 } },
+    { target: 7300, turns: 46, par: 26, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 3 }, mission: { type: 'combo2', n: 1 } },
+    { target: 8400, turns: 45, par: 29, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 1 }, mission: { type: 'galaxy', n: 2 } },
+    { target: 9400, turns: 44, par: 33, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 2, ice: 4 }, mission: { type: 'galaxy', n: 3 } },
+    { target: 10300, turns: 44, par: 36, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 2, nebula: 2 }, mission: { type: 'combo2', n: 1 } },
+    { target: 11300, turns: 44, par: 35, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 1, storm: 2 }, mission: { type: 'galaxy', n: 4 } },
+    { target: 12000, turns: 44, par: 37, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 1, storm: 3, ice: 4 }, mission: { type: 'galaxy', n: 3 } },
+    { target: 12700, turns: 44, par: 37, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 2, storm: 3 }, mission: { type: 'combo2', n: 1 } },
+    { target: 13200, turns: 44, par: 40, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 2, nebula: 1 }, mission: { type: 'nebula', n: 1 } },
+    { target: 13300, turns: 44, par: 39, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 3, hole: 1, warp: 1, ice: 4 }, mission: { type: 'ice', n: 2 } },
+    { target: 14000, turns: 44, par: 40, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 3, storm: 2, warp: 1, nebula: 2, hole: 1 }, mission: { type: 'galaxy', n: 3 } }
   ],
   MAX_PULSES: 3,              // 한 턴 자기장 펄스 최대 횟수
   MAX_CHAIN: 10,              // 연쇄 최대 단계
@@ -740,7 +742,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     st.turn++; if (st.turnLimit) st.turnsLeft--;
     checkMission(st, events);
     if (!st.target || st.score < st.target) { holePull(st, events); nebulaSpread(st, events); checkMission(st, events); }
-    if (st.mode === 'endless') { var de = (sdOf(st).dropEvery || {})[st.diff]; if (de && st.turn % de === 0) { var em = emptyPositions(st); if (em.length > 1) { var dp = em[Math.floor(rngNext(st) * em.length)], did = addCircle(st, dp, 'nebula'); events.push({ type: 'spread', id: did, from: dp, at: dp }); } } }
+    if (st.mode === 'endless') { var de = (sdOf(st).dropEvery || {})[st.diff]; if (de && !st.nextDrop) st.nextDrop = de; if (de && st.turn >= st.nextDrop) { st.nextDrop = st.turn + Math.max(2, Math.round(de * Math.pow(0.5, st.turn / (sdOf(st).halfLife || 60)))); /* v1.4.2: 시간이 갈수록 투하 간격이 반감 → 판 길이 편차 축소 */ for (var dk = 1 + Math.floor(st.turn / (sdOf(st).multEvery || 100)); dk > 0; dk--) { var em = emptyPositions(st); if (!em.length) break; var dp = em[Math.floor(rngNext(st) * em.length)], did = addCircle(st, dp, 'nebula'); events.push({ type: 'spread', id: did, from: dp, at: dp }); } } }
     st.current = st.next; st.next = genPiece(st);
     // 판정 순서: 목표 달성(클리어) → 빈 칸 없음(실패) → 턴 소진(실패)
     var fin = st.mode && st.mode !== 'stage';
@@ -748,8 +750,9 @@ var POLESHIFT_GALLERY_IMAGES = [];
     else if (emptyPositions(st).length === 0) { st.over = true; st.result = fin ? 'end' : 'fail'; st.overReason = '빈 위치가 없어 더 이상 행성을 놓을 수 없습니다.'; events.push({ type: 'gameover' }); }
     else if (st.turnLimit && st.turnsLeft <= 0) { st.over = true; st.result = fin ? 'end' : 'fail'; st.overReason = '턴 제한에 도달했습니다.'; events.push({ type: 'gameover' }); }
   }
-  /* 별점: 남은 턴 비율 ≥40% ★3, ≥20% ★2, 그 외 ★1. 미션이 있는데 미완료면 최대 ★2 */
-  function starsFor(st) { var r = st.turnLimit ? st.turnsLeft / st.turnLimit : 1, s = r >= 0.4 ? 3 : r >= 0.2 ? 2 : 1; if (st.mission && !st.m.done) s = Math.min(2, s); return s; }
+  /* 별점(v1.4.2): 스테이지마다 기준 턴(par, 난이도 배율 적용) — 사용 턴 ≤ par ★3, ≤ par×1.4 ★2, 그 외 ★1. 미션 미완료면 최대 ★2 */
+  function parOf(st) { var sd = st.mode === 'stage' ? stageDef(st.cfg, st.stage) : null; if (!sd || !sd.par) return 0; return Math.ceil(sd.par * (diffDef(st.cfg, st.diff).par || 1)); }
+  function starsFor(st) { var P = parOf(st), s; if (P) s = st.turn <= P ? 3 : st.turn <= Math.ceil(P * 1.4) ? 2 : 1; else { var r = st.turnLimit ? st.turnsLeft / st.turnLimit : 1; s = r >= 0.4 ? 3 : r >= 0.2 ? 2 : 1; } if (st.mission && !st.m.done) s = Math.min(2, s); return s; }
 
   /* ---------- 공개 행동 API (입력 검증 포함) ---------- */
   function afterAction(st, events) { resolveClears(st, events); comboRewards(st, events); endTurn(st, events); return { ok: true, events: events }; }
@@ -793,7 +796,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
 
   root.PoleLogic = {
     RINGS: RINGS, SLOTS: SLOTS, N_POS: N_POS, COLORS: COLORS, OBS: OBS, ADJ: ADJ,
-    stageDef: stageDef, modeDef: modeDef, sdOf: sdOf, kstDateKey: kstDateKey, dailySeed: dailySeed, diffDef: diffDef, starsFor: starsFor, pos: pos, ringOf: ringOf, slotOf: slotOf, dist: dist, createGame: createGame, clone: clone,
+    stageDef: stageDef, modeDef: modeDef, sdOf: sdOf, kstDateKey: kstDateKey, dailySeed: dailySeed, diffDef: diffDef, starsFor: starsFor, parOf: parOf, pos: pos, ringOf: ringOf, slotOf: slotOf, dist: dist, createGame: createGame, clone: clone,
     addCircle: addCircle, emptyPositions: emptyPositions, computePulse: computePulse, runPulses: runPulses, warpPair: warpPair, itemArea: itemArea,
     findGroups: findGroups, groupBase: groupBase, comboMult: comboMult, scoreStep: scoreStep, missionStatus: missionStatus, countKind: countKind,
     resolveClears: resolveClears, comboRewards: comboRewards, endTurn: endTurn, place: place, flip: flip, useItem: useItem, checkIntegrity: checkIntegrity, posOfId: posOfId
@@ -928,7 +931,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
   function closeAll() { ['ovPause', 'ovSettings', 'ovRules', 'ovOver', 'ovZoom', 'ovStages', 'ovIntro', 'ovMode', 'ovBoard'].forEach(function (o) { $(o).classList.remove('on'); }); }
   function menuRefresh() {
     var nc = CFG.COLLECTION.filter(function (t, i) { return unlocked['s' + (i + 1)]; }).length;
-    $('menuRec').textContent = '클리어 ' + stats.stagesCleared + '/' + CFG.STAGES.length + ' · 도감 ' + nc + '/' + CFG.COLLECTION.length + ' · 최고 기록 ' + stats.bestScore.toLocaleString() + '점 · 최고 콤보 ' + stats.bestCombo + ' · 누적 ' + stats.totalScore.toLocaleString() + '점';
+    $('menuRec').innerHTML = ['클리어 ' + stats.stagesCleared + '/' + CFG.STAGES.length, '도감 ' + nc + '/' + CFG.COLLECTION.length, '최고 기록 ' + stats.bestScore.toLocaleString() + '점', '최고 콤보 ' + stats.bestCombo, '누적 ' + stats.totalScore.toLocaleString() + '점'].map(function (x) { return '<span style="white-space:nowrap">' + x + '</span>'; }).join(' · ');
     var s = Store.get('save', null); $('btnContinue').disabled = !(s && !s.over);
   }
 
@@ -937,26 +940,26 @@ var POLESHIFT_GALLERY_IMAGES = [];
   function layout() {
     var w = $('boardWrap'), sz = Math.max(200, Math.min(w.clientWidth, w.clientHeight) - 4);
     geo.size = sz; geo.cx = geo.cy = sz / 2; var R = sz / 2 - 4;
-    geo.radii = [R * 0.42, R * 0.67, R * 0.90]; geo.cr = Math.max(12, R * 0.105);
+    geo.radii = [R * 0.42, R * 0.67, R * 0.90]; geo.cr = Math.max(13, R * 0.112);
     var b = $('board'); b.setAttribute('width', sz); b.setAttribute('height', sz); b.setAttribute('viewBox', '0 0 ' + sz + ' ' + sz);
   }
   function xy(p) { var a = (L.slotOf(p) / L.SLOTS) * Math.PI * 2 - Math.PI / 2, r = geo.radii[L.ringOf(p)]; return [geo.cx + Math.cos(a) * r, geo.cy + Math.sin(a) * r]; }
   /* 행성 렌더링: 종류마다 색과 무관한 고유 모양(고리/크레이터/줄무늬/별결정/나선)을 가진다.
      극성: 중앙 N/S 글자 + 테두리(N=실선 시안, S=점선 마젠타). 색약 모드에서는 무늬를 더 진하고 굵게. */
   function circleSVG(cx, cy, r, color, pol, extra, o) {
-    var cb = settings.cb, pal = cb ? PAL_CB : PAL_DEF, ink = cb ? 'rgba(11,20,48,.9)' : 'rgba(11,20,48,.45)', w = r * (cb ? 0.2 : 0.13), f = '';
+    var cb = settings.cb, pal = cb ? PAL_CB : PAL_DEF, ink = cb ? '#0b1430' : 'rgba(11,20,48,.5)', w = r * (cb ? 0.27 : 0.15), f = '';
     function P(x, y) { return (cx + x * r).toFixed(1) + ',' + (cy + y * r).toFixed(1); }
     if (color === 'blue') f = '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r * 1.28 + '" ry="' + r * 0.36 + '" fill="none" stroke="' + (cb ? '#fff' : '#cfe0ff') + '" stroke-width="' + w + '" transform="rotate(-22 ' + cx + ' ' + cy + ')"/>' +
       (cb ? '<circle cx="' + (cx - r * .45) + '" cy="' + (cy - r * .5) + '" r="' + r * .1 + '" fill="' + ink + '"/><circle cx="' + (cx + r * .45) + '" cy="' + (cy + r * .5) + '" r="' + r * .1 + '" fill="' + ink + '"/>' : '');
-    else if (color === 'red') f = [[-.42, -.38, .22], [.42, -.15, .16], [-.05, .5, .19], [.45, .45, .1]].map(function (c) { return '<circle cx="' + (cx + c[0] * r) + '" cy="' + (cy + c[1] * r) + '" r="' + c[2] * r + '" fill="' + ink + '"/>'; }).join('');
-    else if (color === 'yellow') f = [-.55, 0.02, .55].map(function (y) { var hw = Math.sqrt(1 - y * y) * .95; return '<line x1="' + (cx - hw * r) + '" y1="' + (cy + y * r) + '" x2="' + (cx + hw * r) + '" y2="' + (cy + y * r) + '" stroke="' + ink + '" stroke-width="' + w * 1.2 + '" stroke-linecap="round"/>'; }).join('');
+    else if (color === 'red') f = (cb ? [[-.45, -.4, .28], [.48, -.2, .22], [-.1, .55, .25]] : [[-.42, -.38, .24], [.42, -.15, .18], [-.05, .5, .2], [.45, .45, .12]]).map(function (c) { return '<circle cx="' + (cx + c[0] * r) + '" cy="' + (cy + c[1] * r) + '" r="' + c[2] * r + '" fill="' + ink + '"/>'; }).join('');
+    else if (color === 'yellow') f = [-.55, 0.02, .55].map(function (y) { var hw = Math.sqrt(1 - y * y) * .95; return '<line x1="' + (cx - hw * r) + '" y1="' + (cy + y * r) + '" x2="' + (cx + hw * r) + '" y2="' + (cy + y * r) + '" stroke="' + ink + '" stroke-width="' + w * (cb ? 1.35 : 1.2) + '" stroke-linecap="round"/>'; }).join('');
     else if (color === 'purple') { var pts = []; for (var k = 0; k < 12; k++) { var a = k * Math.PI / 6 - Math.PI / 2, rr = k % 2 ? .38 : .92; pts.push(P(Math.cos(a) * rr, Math.sin(a) * rr)); } f = '<polygon points="' + pts.join(' ') + '" fill="none" stroke="' + ink + '" stroke-width="' + w + '" stroke-linejoin="round"/>'; }
     else if (color === 'galaxy') f = '<path d="M' + P(0, 0) + ' Q' + P(.5, -.1) + ' ' + P(.35, .4) + ' Q' + P(0, .8) + ' ' + P(-.5, .45) + ' M' + P(0, 0) + ' Q' + P(-.5, .1) + ' ' + P(-.35, -.4) + ' Q' + P(0, -.8) + ' ' + P(.5, -.45) + '" fill="none" stroke="#ffc940" stroke-width="' + r * .16 + '" stroke-linecap="round"/><circle cx="' + cx + '" cy="' + cy + '" r="' + r * .16 + '" fill="#fff4c2"/>';
     var border = pol === 'N' ? 'stroke="#22e6ff"' : 'stroke="#ff3bd4" stroke-dasharray="' + (r * .42) + ' ' + (r * .22) + '"';
     if (color === 'galaxy') border += ' ';
     return '<g ' + (extra || '') + '>' + (color === 'galaxy' ? '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r + 3) + '" fill="none" stroke="#ffc940" stroke-width="2"/>' : '') +
       '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + pal[color] + '" ' + border + ' stroke-width="3"/>' + f +
-      '<text x="' + cx + '" y="' + (cy + r * 0.25) + '" text-anchor="middle" font-size="' + (r * 0.84) + '" font-weight="900" fill="#fff" stroke="#0b1430" stroke-width="' + Math.max(2, r * .16) + '" paint-order="stroke" pointer-events="none">' + pol + '</text>' +
+      '<text x="' + cx + '" y="' + (cy + r * 0.25) + '" text-anchor="middle" font-size="' + (r * (cb ? 0.62 : 0.8)) + '" font-weight="900" fill="#fff" stroke="#0b1430" stroke-width="' + Math.max(2, r * .16) + '" paint-order="stroke" pointer-events="none">' + pol + '</text>' +
       (o ? pipsSVG(cx, cy, r, o.str || 2) + itemSVG(cx, cy, r, o) : '') + '</g>';
   }
   /* 세기 1~3: 아래쪽 흰 점(pip) 개수 */
@@ -1033,7 +1036,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
   }
   function render() {
     if (!display) return;
-    var h = [], st = display, i, p;
+    var h = [], lbl = [], st = display, i, p;
     // 궤도 + 점유율 호
     for (i = 0; i < L.RINGS; i++) {
       var cnt = 0; for (var s = 0; s < L.SLOTS; s++) if (st.cells[L.pos(i, s)] !== null) cnt++;
@@ -1041,7 +1044,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
       h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + rr + '" fill="none" stroke="' + ['#ffc940', '#ff3bd4', '#22e6ff'][i] + '" stroke-opacity=".35" stroke-width="2"/>');
       var frac = cnt / L.SLOTS, ro = rr + geo.cr + 3, circ = 2 * Math.PI * ro;
       if (i === L.RINGS - 1 || true) h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + (rr + geo.cr * 0.0) + '" fill="none" stroke="' + (frac > 0.75 ? '#ff4b5c' : '#22e6ff') + '" stroke-opacity=".6" stroke-width="3" stroke-dasharray="' + (2 * Math.PI * rr * frac) + ' 9999" transform="rotate(-90 ' + geo.cx + ' ' + geo.cy + ')"/>');
-      h.push('<text x="' + (geo.cx + 4) + '" y="' + (geo.cy - rr + geo.cr + 14) + '" font-size="11" fill="#9aa7d1" text-anchor="middle">' + 'R' + (i + 1) + ' ' + cnt + '/12</text>');
+      { var la = -Math.PI / 2 + Math.PI / 12, lx = geo.cx + Math.cos(la) * rr, ly = geo.cy + Math.sin(la) * rr + 4; lbl.push('<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" font-size="11" font-weight="800" fill="#dfe6ff" stroke="#0b1430" stroke-width="3" paint-order="stroke" text-anchor="middle" pointer-events="none">' + 'R' + (i + 1) + ' ' + cnt + '/12</text>'); }
     }
     // 자기장 코어
     h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + geo.radii[0] * 0.38 + '" fill="url(#core)"/>');
@@ -1065,6 +1068,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
       if (grab) h.push('<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (geo.cr * 1.75) + '" fill="rgba(255,255,255,.12)" stroke="#ffc940" stroke-width="3"/>');
       h.push(pieceSVG(q[0], q[1], grab ? geo.cr * 1.4 : geo.cr, cc, 'data-p="' + p + '" data-id="' + id2 + '"' + (grab ? ' data-grabbed="1"' : '') + ' style="cursor:pointer"'));
     }
+    lbl.forEach(function (f) { h.push(f); });
     fx.forEach(function (f) { h.push(f); });
     if (TUT) h.push(tutHighlight());
     $('board').innerHTML = h.join(''); $('legend').innerHTML = legendHTML();
@@ -1082,14 +1086,14 @@ var POLESHIFT_GALLERY_IMAGES = [];
       $('hBar').style.width = Math.min(100, G.score / (G.target || Math.max(1, bestM)) * 100) + '%';
     }
     $('hCombo').textContent = G ? G.combo : 0;
-    if (G) $('hDiff').textContent = G.mode === 'endless' ? '무한·' + CFG.DIFFICULTY[G.diff || 'normal'].label : G.mode === 'daily' ? '오늘의 도전' : 'STAGE·' + CFG.DIFFICULTY[G.diff || 'normal'].label;
+    if (G) $('hDiff').textContent = G.mode === 'endless' ? '무한·' + CFG.DIFFICULTY[G.diff || 'normal'].label : G.mode === 'daily' ? '오늘 도전' : '단계·' + CFG.DIFFICULTY[G.diff || 'normal'].label;
     var ms = G && L.missionStatus(G);
     $('mission').style.display = ms ? '' : 'none';
     if (ms) { $('mission').className = ms.done ? 'done' : ''; $('mission').innerHTML = '🎯 <span>' + missionText(ms) + '</span><div class="bar"><i style="width:' + (ms.done ? 100 : Math.min(100, ms.cur / Math.max(1, ms.need) * 100)) + '%"></i></div>'; }
   }
   function missionText(ms) {
     var t = ms.type === 'combo2' ? '2콤보 이상 ' + ms.cur + '/' + ms.need + '회' : ms.type === 'ice' ? '얼음 깨기 ' + ms.cur + '/' + ms.need :
-      ms.type === 'nebula' ? (ms.left !== undefined ? '성운 모두 제거 (남은 ' + ms.left + ')' : '성운 제거 ' + ms.cur + '/' + ms.need) : ms.type === 'item' ? '아이템(혜성·폭탄·펄서) 발동 ' + ms.cur + '/' + ms.need : ms.type === 'pulsar' ? '펄서 발동 ' + ms.cur + '/' + ms.need : ms.turns + '턴 안에 은하 ' + ms.cur + '/' + ms.need;
+      ms.type === 'nebula' ? (ms.left !== undefined ? '성운 모두 제거 (남은 ' + ms.left + ')' : '성운 제거 ' + ms.cur + '/' + ms.need) : ms.type === 'item' ? '아이템(혜성·폭탄·펄서) 발동 ' + ms.cur + '/' + ms.need : ms.type === 'pulsar' ? '펄서 발동 ' + ms.cur + '/' + ms.need : (ms.turns > 0 ? ms.turns + '턴 안에 ' : '') + '은하 만들기 ' + ms.cur + '/' + ms.need;
     return '미션: ' + t + (ms.done ? ' ✔ 완료' : ms.failed ? ' — 시간 초과' : ' (완료 +1000, ★3 조건)');
   }
   function updateButtons() {
@@ -1105,7 +1109,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     if (TUT) { $('hint').innerHTML = '🎓 튜토리얼 진행 중 — 위 안내를 따라 하세요'; return; }
     var t;
     if (!G) t = '';
-    else if (G.over) t = '게임 오버 — 입력이 차단되었습니다.';
+    else if (G.over) t = G.result === 'clear' ? '🎉 스테이지 클리어!' : G.result === 'end' ? '게임 종료 — 기록을 확인하세요.' : '게임 오버 — 다시 도전해 보세요.';
     else if (busy) t = '자기장 처리 중… (입력 잠금)';
     else if (!sel) t = '① 빈 칸을 눌러 <b>발사 위치</b>, ② 행성을 눌러 <b>극성 전환/아이템</b> 선택. 행성을 <b>꾹 누르고 밀면</b> 바로 극성 전환!';
     else if (sel.kind === 'empty') t = '현재 행성(' + COLORKR[G.current.color] + ' ' + G.current.pol + ', 세기 ' + (G.current.str || 2) + ')을 놓으려면 <b>🚀 발사</b>. 취소 ✕.';
@@ -1249,7 +1253,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     var ms = L.missionStatus(G);
     if (clear) { SFX.unlock(); vib([30, 30, 80]); } else { SFX.over(); vib([60, 40, 60]); }
     $('overTitle').textContent = clear ? (last ? 'ALL STAGES CLEAR!' : 'STAGE ' + (G.stage + 1) + ' CLEAR!') : 'STAGE ' + (G.stage + 1) + ' 실패';
-    $('overBody').innerHTML = (clear ? '<span class="bigstars" aria-label="별 ' + G.stars + '개">' + '★★★'.slice(0, G.stars) + '<span style="opacity:.25">' + '★★★'.slice(G.stars) + '</span></span><br>남은 턴 ' + G.turnsLeft + ' / ' + G.turnLimit + (last ? '<br><b>모든 스테이지를 클리어했어요!</b>' : '') : (G.overReason || '')) +
+    $('overBody').innerHTML = (clear ? '<span class="bigstars" aria-label="별 ' + G.stars + '개">' + '★★★'.slice(0, G.stars) + '<span style="opacity:.25">' + '★★★'.slice(G.stars) + '</span></span><br>사용 ' + G.turn + '턴 (★3 기준 ' + L.parOf(G) + '턴) · 남은 턴 ' + G.turnsLeft + (last ? '<br><b>모든 스테이지를 클리어했어요!</b>' : '') : (G.overReason || '')) +
       (newCard ? '<div class="newcard" id="newCard"><div class="nc">' + mediaHTML(newCard, false) + '</div><div><b>NEW 보상 카드!</b><br>' + cardTitle(newCard) + '<br><small>도감에 추가되었어요</small></div></div>' : '') +
       (ms ? '<br>' + missionText(ms) + (clear && !ms.done ? '<br><small>미션을 완료하면 ★3을 받을 수 있어요</small>' : '') : '') +
       '<br><br>점수 <b>' + G.score.toLocaleString() + '</b> / 목표 ' + G.target.toLocaleString() + '<br>최고 점수 <b>' + stats.bestScore.toLocaleString() + '</b><br>이번 판 최고 콤보 <b>' + G.maxCombo + '</b>';
@@ -1282,7 +1286,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
       var open = i <= pg.cleared, st = pg.stars[i] || 0, g = L.createGame(1, CFG, i, d);
       var obs = Object.keys(sd.obs || {}).map(function (k) { return OBS_INFO[k][0].replace(/ \(.*/, ''); }).join('·');
       return '<button id="stg' + i + '"' + (open ? '' : ' disabled') + (sd.colors > 3 ? ' class="mg"' : '') + '>' + (open ? '' : '🔒 ') + 'STAGE ' + (i + 1) +
-        '<span class="stars" aria-label="별 ' + st + '개">' + '★★★'.slice(0, st) + '<span style="opacity:.25">' + '★★★'.slice(st) + '</span></span><small>목표 ' + g.target.toLocaleString() + ' · ' + g.turnLimit + '턴' + (obs ? '<br>' + obs : '') + '</small></button>';
+        '<span class="stars" aria-label="별 ' + st + '개">' + '★★★'.slice(0, st) + '<span style="opacity:.25">' + '★★★'.slice(st) + '</span></span><small>목표 ' + g.target.toLocaleString() + ' · ' + g.turnLimit + '턴 · ★3 ' + L.parOf(g) + '턴' + (obs ? '<br>' + obs : '') + '</small></button>';
     }).join('');
     CFG.STAGES.forEach(function (sd, i) { $('stg' + i).onclick = function () { audio(); newGame(i); }; });
     $('ovStages').classList.add('on');
@@ -1393,7 +1397,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     '<p><b>세기</b>: 행성 아래 흰 점(●) 1~3개 = 자기장 세기. 세기만큼의 거리(1~3칸) 안의 행성이 반응해요.</p><p><b>꾹 눌러 전환</b>: 행성을 꾹 누르면 커지고(잡기), 그대로 옆으로 밀면 극성 전환(행동 1회). 버튼으로도 가능.</p>',
     '<p><b>아이템</b> (흰 배지 모양으로 구분)</p><ul><li>4개 일렬(한 궤도) → <b>혜성</b>: 궤도형(점선 고리)=궤도 12칸 / 방사형(세로 화살표)=같은 각도 3칸+좌우</li><li>4개가 두 궤도에 걸친 L/T 모양 → <b>중력 폭탄</b>: 자신+인접칸+같은 궤도 2칸</li><li>5개 이상 → <b>펄서</b>: 같은 종류 행성 전부</li></ul><p>아이템은 매치에 휩쓸리거나, 탭 → <b>⚡ 발동</b>(행동 1회)으로 터져요.</p><p><b>콤보 보상</b>: 2콤보 ×1.5 + 턴 +1 · 3콤보 혜성 생성 · 5콤보 미니 초신성(모든 은하·성운 제거, 얼음 1회 타격).</p>',
     '<p><b>장애물</b></p><ul><li>성운(구름): 매 턴 1칸 확산, 옆 매치로 제거</li><li>얼음(육각형+숫자): 옆 매치 2번에 깨짐</li><li>블랙홀(검은 원): 매 턴 2칸 거리 행성을 1칸 당김</li><li>운석(돌): 초신성만 부숨</li><li>자기 폭풍(번개 테두리 칸): 들어오면 극성 반전</li><li>워프(번호 고리): 같은 번호 칸으로 순간이동</li></ul><p><b>미션</b>: 스테이지마다 하나. 완료하면 +1000점, ★3은 미션 완료 시에만. <b>난이도</b> 쉬움/보통/어려움은 턴·목표·장애물 수가 달라요(진행도 따로 저장).</p>',
-    '<p><b>점수</b></p><ul><li>병합: n×100 + 크기 보너스(4개 +100, 5개↑ +100+(n−4)×200) + 은하 탄생 +200</li><li>초신성: 1000 + 은하×500 + 주변 행성×150</li><li>콤보 배율 = 1 + 0.5×(콤보−1)</li></ul><p><b>스테이지</b>: 정해진 턴 안에 목표 점수를 넘기면 클리어! 남은 턴이 많을수록 별 ★★★. 턴을 다 쓰거나 판이 꽉 차면 실패. 4스테이지부터 보라 얼음별이 추가돼요.</p>'
+    '<p><b>점수</b></p><ul><li>병합: n×100 + 크기 보너스(4개 +100, 5개↑ +100+(n−4)×200) + 은하 탄생 +200</li><li>초신성: 1000 + 은하×500 + 주변 행성×150</li><li>콤보 배율 = 1 + 0.5×(콤보−1)</li></ul><p><b>스테이지</b>: 정해진 턴 안에 목표 점수를 넘기면 클리어! 스테이지마다 <b>기준 턴</b>이 있어요: 기준 턴 안에 깨면 ★★★, 기준의 1.4배 안이면 ★★, 그 외 ★. 미션을 못 하면 최대 ★★. 턴을 다 쓰거나 판이 꽉 차면 실패. 4스테이지부터 보라 얼음별이 추가돼요.</p>'
   ];
   var rIdx = 0;
   function openRules() { rIdx = 0; drawRules(); $('ovRules').classList.add('on'); }
