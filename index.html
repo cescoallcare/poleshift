@@ -14,6 +14,9 @@ body{background:radial-gradient(ellipse at 50% 30%,#101c46 0%,#060a1c 55%,#02030
 #stars{position:fixed;inset:0;pointer-events:none;z-index:0}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;z-index:1;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}
 .screen.on{display:flex}
+#studioIntro{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .6s ease;opacity:1}
+#studioIntro.fade{opacity:0;pointer-events:none}
+#studioIntro video{width:100%;height:100%;object-fit:contain;background:#000}
 button{font:inherit;font-weight:700;color:var(--tx);background:var(--panel);border:2px solid #2b3a72;border-radius:14px;padding:12px 16px;min-height:48px;cursor:pointer;touch-action:manipulation}
 button:disabled{opacity:.38;cursor:not-allowed}
 button.pri{background:linear-gradient(135deg,#0c5f7a,#0b2f66);border-color:var(--cy)}
@@ -1627,6 +1630,24 @@ var POLESHIFT_GALLERY_IMAGES = [];
   drawStars(); drawSettings(); menuRefresh();
   // 재현 가능한 테스트용: URL ?seed=123 이면 해당 시드로 시작 (디버그 UI 노출 없음)
   if (!Store.get('cbAsked', false)) $('ovCB').classList.add('on');
+})();
+</script>
+<div id="studioIntro"><video id="introVid" src="intro.mp4" playsinline webkit-playsinline muted autoplay preload="auto"></video></div>
+<script id="intro">
+// 스튜디오 인트로: 앱 시작 시 1회 재생, 탭하면 건너뜀, 끝나면 타이틀로 페이드. 로드 실패 시 바로 타이틀.
+(function(){
+  var el=document.getElementById('studioIntro'),v=document.getElementById('introVid'),done=false;
+  function end(){ if(done)return; done=true; try{v.pause();}catch(e){} el.classList.add('fade'); setTimeout(function(){ if(el.parentNode)el.parentNode.removeChild(el); },650); }
+  var q=location.search;
+  // 자동화 테스트 전용: ?nointro 또는 webdriver(테스트 브라우저)면 생략. ?intro=1 이면 강제 재생.
+  if(/[?&]nointro\b/.test(q) || (navigator.webdriver && !/[?&]intro=1\b/.test(q))){ done=true; el.parentNode.removeChild(el); return; }
+  el.addEventListener('pointerdown',function(e){e.preventDefault();e.stopPropagation();end();});
+  el.addEventListener('click',function(e){e.stopPropagation();end();});
+  v.addEventListener('ended',end); v.addEventListener('error',end);
+  var src=v.querySelector('source'); 
+  try{ var pr=v.play(); if(pr&&pr.catch)pr.catch(function(){ v.muted=true; v.play().catch(end); }); }catch(e){end();}
+  setTimeout(function(){ if(!done && (v.readyState<2)) end(); },2500); // 로드 지연/실패 대비
+  setTimeout(end,9000); // 안전장치
 })();
 </script>
 </body>
