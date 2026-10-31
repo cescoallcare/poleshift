@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<link rel="icon" href="data:,">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>POLESHIFT 폴시프트 — MAGNETIC PUZZLE</title>
 <style>
 :root{--bg:#04060f;--navy:#0b1430;--panel:#0f1a3a;--cy:#22e6ff;--mg:#ff3bd4;--gold:#ffc940;--tx:#e8eeff;--mut:#9aa7d1;
@@ -115,6 +117,11 @@ body.tut #toast{top:52%}
 .introRow p{margin:0;font-size:14px}
 @media (max-height:900px){#formula{display:none}}
 @media (max-height:700px){.stat b{font-size:16px}.ctrl button{min-height:44px}#formula{display:none}}
+/* v1.4.5 */
+#ringInfo{width:100%;max-width:560px;display:flex;flex-wrap:wrap;justify-content:center;gap:2px 10px;font-size:12px;color:var(--tx);font-weight:700}
+.ctrl button{white-space:nowrap;overflow:hidden;text-overflow:clip}
+@media (max-width:400px){#formula{display:none}.ctrl button{font-size:14px;padding:8px 2px;letter-spacing:-.02em}#toast{top:auto;bottom:calc(6px + env(safe-area-inset-bottom))}.tmsg{font-size:14px;padding:5px 10px}body.tut #toast{top:52%;bottom:auto}#legend{font-size:12px}}
+@media (max-width:340px){.ctrl{grid-template-columns:auto 1fr 1fr .8fr;gap:4px}.ctrl button{font-size:13px}}
 </style>
 </head>
 <body>
@@ -163,6 +170,7 @@ body.tut #toast{top:52%}
   </div>
   <div id="mission" aria-live="polite"></div>
   <div id="boardWrap"><svg id="board" role="img" aria-label="원형 경기장"></svg></div>
+  <div id="ringInfo" aria-label="구역과 궤도 점유"></div>
   <div id="legend" aria-label="행성 범례"></div>
   <div class="ctrl">
     <div class="preview">
@@ -273,25 +281,29 @@ var POLESHIFT_CONFIG = {
      obs = { nebula, ice, hole, meteor, storm(칸 수), warp(쌍 수) }
      mission = { type:'combo2'(2콤보 이상 n회) | 'ice'(얼음 n개 깨기) | 'nebula'(성운 모두 제거)
                        | 'pulsar'(펄서 n회 발동) | 'item'(아이템 n회 발동) | nebula에 n이 있으면 'n개 제거' | 'galaxy'(은하 n개; turns>0이면 turns 턴 안에), n, turns } */
+  /* v1.4.5 판 배치(layout): 장애물·시작 행성을 놓는 무늬. 'open'(자유) 'pair'(마주보는 쌍) 'triad'(삼각 120°) 'cross'(십자 90°)
+     'arc'(한쪽 부채꼴에 몰림) 'spiral'(나선 팔) 'band'(한 궤도 띠) 'mirror'(정반대 칸 대칭). pre = 시작 때 미리 놓인 행성 수(매치 안 되게 배치).
+     무한/오늘 도전은 시드로 무늬를 고른다. 같은 시드면 항상 같은 판. */
+  LAYOUTS: ['open', 'pair', 'triad', 'cross', 'arc', 'spiral', 'band', 'mirror'],
   STAGES: [
-    { target: 800, turns: 99, par: 6, colors: 3, pN: 0.75, easyTurns: 8, obs: {}, mission: { type: 'galaxy', n: 1 } },
-    { target: 1500, turns: 99, par: 10, colors: 3, pN: 0.65, easyTurns: 4, obs: {}, mission: { type: 'galaxy', n: 2 } },
-    { target: 2500, turns: 99, par: 14, colors: 3, pN: 0.55, easyTurns: 0, obs: {}, mission: { type: 'galaxy', n: 2 } },
-    { target: 3000, turns: 99, par: 19, colors: 4, pN: 0.6, easyTurns: 0, obs: { ice: 6 }, mission: { type: 'ice', n: 1 } },
-    { target: 3800, turns: 99, par: 20, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 8 }, mission: { type: 'ice', n: 2 }, by: {easy: {par: 23}} },
-    { target: 5000, turns: 52, par: 21, colors: 4, pN: 0.5, easyTurns: 0, obs: { ice: 10 }, mission: { type: 'ice', n: 2 }, by: {easy: {par: 24}} },
-    { target: 5600, turns: 50, par: 22, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 2 }, mission: { type: 'nebula', n: 1 } },
-    { target: 6300, turns: 48, par: 23, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 2, ice: 2 }, mission: { type: 'nebula', n: 2 } },
-    { target: 7300, turns: 46, par: 26, colors: 4, pN: 0.5, easyTurns: 0, obs: { nebula: 3 }, mission: { type: 'combo2', n: 1 } },
-    { target: 8400, turns: 45, par: 29, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 1 }, mission: { type: 'galaxy', n: 2 }, by: {easy: {par: 26}} },
-    { target: 9400, turns: 44, par: 33, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 2, ice: 4 }, mission: { type: 'galaxy', n: 3 }, by: {easy: {par: 27}} },
-    { target: 10300, turns: 44, par: 36, colors: 4, pN: 0.5, easyTurns: 0, obs: { warp: 2, nebula: 2 }, mission: { type: 'combo2', n: 1 }, by: {easy: {par: 30}} },
-    { target: 11300, turns: 44, par: 35, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 1, storm: 2 }, mission: { type: 'galaxy', n: 4 }, by: {easy: {par: 32}} },
-    { target: 12000, turns: 44, par: 37, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 1, storm: 3, ice: 4 }, mission: { type: 'galaxy', n: 3 }, by: {easy: {par: 33}} },
-    { target: 12700, turns: 44, par: 37, colors: 4, pN: 0.5, easyTurns: 0, obs: { hole: 2, storm: 3 }, mission: { type: 'combo2', n: 1 }, by: {easy: {par: 34}, hard: {target: 0.95}} },
-    { target: 13200, turns: 44, par: 40, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 2, nebula: 1 }, mission: { type: 'nebula', n: 1 }, by: {easy: {par: 33}, hard: {target: 0.82}} },
-    { target: 13300, turns: 44, par: 39, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 3, hole: 1, warp: 1, ice: 4 }, mission: { type: 'ice', n: 2 }, by: {easy: {mission: {type: 'ice', n: 1}, par: 36}, hard: {target: 0.90}} },
-    { target: 14000, turns: 44, par: 40, colors: 4, pN: 0.5, easyTurns: 0, obs: { meteor: 3, storm: 2, warp: 1, nebula: 2, hole: 1 }, mission: { type: 'galaxy', n: 3 }, by: {easy: {par: 36}, hard: {target: 0.8}} }
+    { target: 800, turns: 99, par: 6, colors: 3, pN: 0.75, easyTurns: 8, layout: 'open', pre: 3, obs: {}, mission: { type: 'galaxy', n: 1 } },
+    { target: 1500, turns: 99, par: 10, colors: 3, pN: 0.65, easyTurns: 4, layout: 'pair', pre: 3, obs: {}, mission: { type: 'galaxy', n: 2 } },
+    { target: 2500, turns: 99, par: 14, colors: 3, pN: 0.55, easyTurns: 0, layout: 'triad', pre: 4, obs: {}, mission: { type: 'galaxy', n: 2 } },
+    { target: 3000, turns: 99, par: 19, colors: 4, pN: 0.6, easyTurns: 0, layout: 'cross', pre: 2, obs: { ice: 6 }, mission: { type: 'ice', n: 1 } },
+    { target: 3800, turns: 99, par: 20, colors: 4, pN: 0.5, easyTurns: 0, layout: 'arc', pre: 2, obs: { ice: 8 }, mission: { type: 'ice', n: 2 }, by: {easy: {par: 23}} },
+    { target: 5000, turns: 52, par: 21, colors: 4, pN: 0.5, easyTurns: 0, layout: 'spiral', pre: 3, obs: { ice: 10 }, mission: { type: 'ice', n: 2 }, by: {easy: {par: 24}} },
+    { target: 5600, turns: 50, par: 22, colors: 4, pN: 0.5, easyTurns: 0, layout: 'band', pre: 2, obs: { nebula: 2 }, mission: { type: 'nebula', n: 1 } },
+    { target: 6300, turns: 48, par: 23, colors: 4, pN: 0.5, easyTurns: 0, layout: 'mirror', pre: 2, obs: { nebula: 2, ice: 2 }, mission: { type: 'nebula', n: 2 } },
+    { target: 7300, turns: 46, par: 26, colors: 4, pN: 0.5, easyTurns: 0, layout: 'spiral', pre: 3, obs: { nebula: 3 }, mission: { type: 'combo2', n: 1 } },
+    { target: 8400, turns: 45, par: 29, colors: 4, pN: 0.5, easyTurns: 0, layout: 'mirror', pre: 2, obs: { warp: 1 }, mission: { type: 'galaxy', n: 2 }, by: {easy: {par: 26}} },
+    { target: 9400, turns: 44, par: 33, colors: 4, pN: 0.5, easyTurns: 0, layout: 'cross', pre: 2, obs: { warp: 2, ice: 4 }, mission: { type: 'galaxy', n: 3 }, by: {easy: {par: 27}} },
+    { target: 10300, turns: 44, par: 36, colors: 4, pN: 0.5, easyTurns: 0, layout: 'triad', pre: 3, obs: { warp: 2, nebula: 2 }, mission: { type: 'combo2', n: 1 }, by: {easy: {par: 30}} },
+    { target: 11300, turns: 44, par: 35, colors: 4, pN: 0.5, easyTurns: 0, layout: 'arc', pre: 2, obs: { hole: 1, storm: 2 }, mission: { type: 'galaxy', n: 4 }, by: {easy: {par: 32}} },
+    { target: 12000, turns: 44, par: 37, colors: 4, pN: 0.5, easyTurns: 0, layout: 'mirror', pre: 2, obs: { hole: 1, storm: 3, ice: 4 }, mission: { type: 'galaxy', n: 3 }, by: {easy: {par: 33}} },
+    { target: 12700, turns: 44, par: 37, colors: 4, pN: 0.5, easyTurns: 0, layout: 'spiral', pre: 3, obs: { hole: 2, storm: 3 }, mission: { type: 'combo2', n: 1 }, by: {easy: {par: 34}, hard: {target: 0.95}} },
+    { target: 13200, turns: 44, par: 40, colors: 4, pN: 0.5, easyTurns: 0, layout: 'band', pre: 2, obs: { meteor: 2, nebula: 1 }, mission: { type: 'nebula', n: 1 }, by: {easy: {par: 33}, hard: {target: 0.82}} },
+    { target: 13300, turns: 44, par: 39, colors: 4, pN: 0.5, easyTurns: 0, layout: 'cross', pre: 2, obs: { meteor: 3, hole: 1, warp: 1, ice: 4 }, mission: { type: 'ice', n: 2 }, by: {easy: {mission: {type: 'ice', n: 1}, par: 36}, hard: {target: 0.95}} },
+    { target: 14000, turns: 44, par: 40, colors: 4, pN: 0.5, easyTurns: 0, layout: 'triad', pre: 3, obs: { meteor: 3, storm: 2, warp: 1, nebula: 2, hole: 1 }, mission: { type: 'galaxy', n: 3 }, by: {easy: {par: 36}, hard: {target: 0.8}} }
   ],
   MAX_PULSES: 3,              // 한 턴 자기장 펄스 최대 횟수
   MAX_CHAIN: 10,              // 연쇄 최대 단계
@@ -388,7 +400,11 @@ var POLESHIFT_GALLERY_IMAGES = [];
       score: 0, combo: 0, maxCombo: 0, over: false, overReason: '', current: null, next: null,
       m: { combo2: 0, ice: 0, nebula: 0, pulsar: 0, galaxy: 0, item: 0, done: false }, mission: null
     };
+    var LYS = cfg.LAYOUTS || ['open'];
+    st.layout = mode === 'stage' ? (sd.layout || 'open') : LYS[(seed >>> 0) % LYS.length];
+    st.layoutRot = Math.floor(rngNext(st) * SLOTS);
     placeObstacles(st, sd.obs || {}, D);
+    prePlanets(st, mode === 'stage' ? (sd.pre || 0) : (mode === 'daily' ? 3 : 2), sd);
     var MS = BY.mission || sd.mission;
     if (MS) {
       st.mission = { type: MS.type, n: MS.n || (MS.type === 'nebula' ? 0 : 1), turns: MS.turns || 0 };
@@ -400,11 +416,40 @@ var POLESHIFT_GALLERY_IMAGES = [];
     return st;
   }
   function countKind(st, k) { var n = 0; for (var id in st.circles) if (st.circles[id].color === k) n++; return n; }
+  /* v1.4.5: 판 배치 무늬 — 칸 p가 이 무늬의 '선호 칸'인지 (i = 지금까지 놓은 개수, last = 직전 칸) */
+  function layoutPref(ly, r0, p, i, last) {
+    var r = ringOf(p), s = ((slotOf(p) - r0) % SLOTS + SLOTS) % SLOTS;
+    switch (ly) {
+      case 'pair': return s === 0 || s === 6 || s === 1 || s === 7;
+      case 'triad': return s % 4 === 0;
+      case 'cross': return s % 3 === 0;
+      case 'arc': return s <= 4;
+      case 'spiral': return ((s - 2 * r) % 6 + 6) % 6 === 0;
+      case 'band': return r === (r0 % 2 ? 2 : 0) || s % 6 === 0;
+      case 'mirror': return last === null || i % 2 === 0 ? s % 2 === 0 : (slotOf(p) === (slotOf(last) + 6) % SLOTS);
+      default: return true;
+    }
+  }
+  /* v1.4.5: 시작 행성 — 무늬 칸에 미리 놓되 같은 색이 이웃하지 않게 (바로 매치되지 않음) */
+  function prePlanets(st, n, sd) {
+    var ncol = (sd.easyTurns || 0) > 0 ? 2 : (sd.colors || 3), k;
+    for (k = 0; k < n; k++) {
+      var c = [], p; for (p = 0; p < N_POS; p++) if (st.cells[p] === null && !st.tiles[p] && layoutPref(st.layout, (st.layoutRot + 1) % SLOTS, p, k, null)) c.push(p);
+      if (!c.length) for (p = 0; p < N_POS; p++) if (st.cells[p] === null && !st.tiles[p]) c.push(p);
+      if (!c.length) return;
+      p = c[Math.floor(rngNext(st) * c.length)];
+      var col = COLORS[Math.floor(rngNext(st) * ncol)], tries = 0;
+      while (tries++ < 4 && ADJ[p].some(function (q) { var o = st.cells[q]; return o !== null && st.circles[o].color === col; })) col = COLORS[(COLORS.indexOf(col) + 1) % ncol];
+      if (ADJ[p].some(function (q) { var o = st.cells[q]; return o !== null && st.circles[o].color === col; })) continue;
+      addCircle(st, p, col, rngNext(st) < 0.5 ? 'N' : 'S', 1);
+    }
+  }
   /* 장애물 배치 (시드 기반 결정적). 개수는 난이도 obs 배율로 조정(0보다 크면 최소 1).
      블랙홀=가운데 궤도, 성운=바깥 궤도, 나머지=아무 빈칸. 폭풍/워프는 빈 칸의 '칸 속성'. */
   function placeObstacles(st, o, D) {
     function n(k) { return o[k] ? Math.max(1, Math.round(o[k] * D.obs)) : 0; }
-    function pick(filter) { var c = []; for (var p = 0; p < N_POS; p++) if (st.cells[p] === null && !st.tiles[p] && filter(p)) c.push(p); return c.length ? c[Math.floor(rngNext(st) * c.length)] : null; }
+    var LY = st.layout, r0 = st.layoutRot, cnt = 0, last = null;
+    function pick(filter) { var c = []; for (var p = 0; p < N_POS; p++) if (st.cells[p] === null && !st.tiles[p] && filter(p)) c.push(p); if (!c.length) return null; var pr = c.filter(function (p) { return layoutPref(LY, r0, p, cnt, last); }); if (pr.length) c = pr; var q = c[Math.floor(rngNext(st) * c.length)]; cnt++; last = q; return q; }
     function put(kind, filter) { var p = pick(filter); if (p === null) return; var id = st.nextId++; st.circles[id] = { id: id, obs: true, color: kind, ring: ringOf(p), slot: slotOf(p), hp: kind === 'ice' ? 2 : 0 }; st.cells[p] = id; }
     var i;
     for (i = 0; i < n('hole'); i++) put('hole', function (p) { return ringOf(p) === 1 && ADJ[p].every(function (q) { return st.cells[q] === null || !st.circles[st.cells[q]].obs; }); });
@@ -753,7 +798,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     else if (st.turnLimit && st.turnsLeft <= 0) { st.over = true; st.result = fin ? 'end' : 'fail'; st.overReason = '턴 제한에 도달했습니다.'; events.push({ type: 'gameover' }); }
   }
   /* 별점(v1.4.2): 스테이지마다 기준 턴(par, 난이도 배율 적용) — 사용 턴 ≤ par ★3, ≤ par×1.4 ★2, 그 외 ★1. 미션 미완료면 최대 ★2 */
-  function parOf(st) { var sd = st.mode === 'stage' ? stageDef(st.cfg, st.stage) : null; if (!sd || !sd.par) return 0; var by = (sd.by && sd.by[st.diff]) || {}, P = by.par || Math.ceil(sd.par * (diffDef(st.cfg, st.diff).par || 1)); if (st.diff !== 'normal' && st.turnLimit) P = Math.min(P, Math.floor(st.turnLimit * 0.8)); /* v1.4.3: par는 항상 턴 제한의 80% 이하 */ return Math.max(1, P); }
+  function parOf(st) { var sd = st.mode === 'stage' ? stageDef(st.cfg, st.stage) : null; if (!sd || !sd.par) return 0; var by = (sd.by && sd.by[st.diff]) || {}, P = by.par || Math.ceil(sd.par * (diffDef(st.cfg, st.diff).par || 1)); if (st.diff !== 'normal' && st.turnLimit) P = Math.min(P, Math.floor(st.turnLimit * (st.diff === 'hard' ? 0.88 : 0.8))); /* v1.4.5: 어려움은 88%까지 (S11~18 par 36) */ /* v1.4.3: par는 항상 턴 제한의 80% 이하 */ return Math.max(1, P); }
   function starsFor(st) { var P = parOf(st), s; if (P) s = st.turn <= P ? 3 : st.turn <= Math.ceil(P * 1.4) ? 2 : 1; else { var r = st.turnLimit ? st.turnsLeft / st.turnLimit : 1; s = r >= 0.4 ? 3 : r >= 0.2 ? 2 : 1; } if (st.mission && !st.m.done) s = Math.min(2, s); return s; }
 
   /* ---------- 공개 행동 API (입력 검증 포함) ---------- */
@@ -904,6 +949,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     if (mode === 'daily') G.dayKey = dk;
     display = L.clone(G); Store.set('save', null);
     closeAll(); show('game'); layout(); render(); updateHud(); showIntro();
+    if (!TUT) toast((mode === 'stage' ? 'STAGE ' + ((stage | 0) + 1) + ' · ' : '') + (isSpecial(G) ? '★ ' : '') + themeOf(G).name);
   }
   /* 장애물이 처음 등장하는 스테이지에서 짧은 소개 카드 (한 번만) */
   var OBS_INFO = {
@@ -938,14 +984,47 @@ var POLESHIFT_GALLERY_IMAGES = [];
   }
 
   /* ---------- 경기장 렌더링 (SVG) ---------- */
+  var ringCnt = [0, 0, 0];
   var geo = { size: 300, cx: 150, cy: 150, radii: [60, 95, 130], cr: 15 };
   function layout() {
     var w = $('boardWrap'), sz = Math.max(200, Math.min(w.clientWidth, w.clientHeight) - 4);
     geo.size = sz; geo.cx = geo.cy = sz / 2; var R = sz / 2 - 4;
-    geo.radii = [R * 0.39, R * 0.625, R * 0.84]; geo.cr = Math.max(13, R * 0.104); /* v1.4.4: 워프 고리·번호 배지까지 판 안에 들어오게 */
+    geo.radii = [R * 0.42, R * 0.64, R * 0.845]; geo.cr = Math.max(14, R * 0.112); /* v1.4.5: 안쪽 궤도를 넓혀 셀 간격·크기 키움(320px 오탭 완화) */ /* v1.4.4: 워프 고리·번호 배지까지 판 안에 들어오게 */
     var b = $('board'); b.setAttribute('width', sz); b.setAttribute('height', sz); b.setAttribute('viewBox', '0 0 ' + sz + ' ' + sz);
   }
-  function xy(p) { var a = (L.slotOf(p) / L.SLOTS) * Math.PI * 2 - Math.PI / 2, r = geo.radii[L.ringOf(p)]; return [geo.cx + Math.cos(a) * r, geo.cy + Math.sin(a) * r]; }
+  /* v1.4.5: 구역 테마 — 3스테이지마다 배경·궤도 선 모양·장식 무늬·궤도 비틀림이 달라짐(색만이 아니라 선/무늬 모양으로 구분) */
+  var THEMES = [
+    { name: '오리온 요람', bg: ['#10224a', '#050a1c'], dash: '', motif: 'stars', twist: 0 },
+    { name: '서리 구역', bg: ['#0b2f3d', '#04121a'], dash: '10 5', motif: 'hex', twist: 6 },
+    { name: '보랏빛 안개', bg: ['#2c1446', '#0a0618'], dash: '2 6', motif: 'cloud', twist: -8 },
+    { name: '웜홀 관문', bg: ['#08303a', '#020c12'], dash: '14 4 3 4', motif: 'rings', twist: 11 },
+    { name: '자기 폭풍', bg: ['#3a1c08', '#120602'], dash: '6 3', motif: 'zigzag', twist: -12 },
+    { name: '운석 띠', bg: ['#26262e', '#08080c'], dash: '1 4 8 4', motif: 'rocks', twist: 15 }
+  ];
+  var LAYOUTKR = { open: '자유', pair: '쌍둥이', triad: '삼각', cross: '십자', arc: '부채꼴', spiral: '나선', band: '띠', mirror: '거울' };
+  function zoneIdx(g) { if (!g) return 0; return g.mode && g.mode !== 'stage' ? (g.seed >>> 0) % THEMES.length : Math.min(THEMES.length - 1, Math.floor((g.stage | 0) / 3)); }
+  function isSpecial(g) { return g && (!g.mode || g.mode === 'stage') && (g.stage | 0) % 3 === 2; }
+  function themeOf(g) { return THEMES[zoneIdx(g)]; }
+  function boardBG(g) {
+    var T = themeOf(g), R = geo.size / 2 - 2, cx = geo.cx, cy = geo.cy, o = [], seed = ((g ? (g.mode === 'stage' || !g.mode ? g.stage * 7919 + 13 : g.seed) : 1) >>> 0) || 1;
+    function rnd() { seed = (Math.imul(seed, 1103515245) + 12345) >>> 0; return seed / 4294967296; }
+    o.push('<defs><radialGradient id="zbg"><stop offset="0" stop-color="' + T.bg[0] + '"/><stop offset="1" stop-color="' + T.bg[1] + '"/></radialGradient></defs>');
+    o.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="url(#zbg)" pointer-events="none"/>');
+    var g2 = ['<g pointer-events="none" opacity=".5" data-motif="' + T.motif + '">'];
+    for (var i = 0; i < 14; i++) {
+      var a = rnd() * Math.PI * 2, d = R * (0.15 + (T.motif === 'cloud' ? 0.55 : 0.75) * Math.sqrt(rnd())), x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, k = R * (0.025 + rnd() * 0.03);
+      if (T.motif === 'stars') g2.push('<path d="M' + x + ' ' + (y - k * 2) + 'L' + (x + k * .5) + ' ' + y + 'L' + x + ' ' + (y + k * 2) + 'L' + (x - k * .5) + ' ' + y + 'Z M' + (x - k * 2) + ' ' + y + 'L' + x + ' ' + (y + k * .5) + 'L' + (x + k * 2) + ' ' + y + 'L' + x + ' ' + (y - k * .5) + 'Z" fill="#cfe0ff"/>');
+      else if (T.motif === 'hex') { var pts = []; for (var j = 0; j < 6; j++) pts.push((x + Math.cos(j * Math.PI / 3) * k * 1.6).toFixed(1) + ',' + (y + Math.sin(j * Math.PI / 3) * k * 1.6).toFixed(1)); g2.push('<polygon points="' + pts.join(' ') + '" fill="none" stroke="#bff3ff" stroke-width="1.2"/>'); }
+      else if (T.motif === 'cloud') g2.push('<ellipse cx="' + x + '" cy="' + y + '" rx="' + k * 5 + '" ry="' + k * 2.4 + '" fill="#b98cff" opacity=".22"/>');
+      else if (T.motif === 'rings') { if (i < 4) g2.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + R * (0.2 + i * 0.25) + '" fill="none" stroke="#8ff7e0" stroke-width="1" stroke-dasharray="1 7"/>'); else g2.push('<circle cx="' + x + '" cy="' + y + '" r="' + k * 1.4 + '" fill="none" stroke="#8ff7e0" stroke-width="1.2"/>'); }
+      else if (T.motif === 'zigzag') g2.push('<path d="M' + (x - k * 2) + ' ' + (y - k * 2) + 'l' + k * 1.6 + ' ' + k * 1.6 + 'l-' + k * .8 + ' 0l' + k * 2 + ' ' + k * 2.2 + '" fill="none" stroke="#ffd08a" stroke-width="1.4" stroke-linejoin="round"/>');
+      else { var q = []; for (var m = 0; m < 5; m++) { var aa = m * 1.256 + rnd() * .5, rr2 = k * (1 + rnd()); q.push((x + Math.cos(aa) * rr2).toFixed(1) + ',' + (y + Math.sin(aa) * rr2).toFixed(1)); } g2.push('<polygon points="' + q.join(' ') + '" fill="#8a8a96" opacity=".7"/>'); }
+    }
+    g2.push('</g>'); o.push(g2.join(''));
+    if (isSpecial(g)) o.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 2) + '" fill="none" stroke="#ffc940" stroke-width="2" stroke-dasharray="3 5" pointer-events="none" data-special="1"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 6) + '" fill="none" stroke="#ffc940" stroke-opacity=".5" stroke-width="1" pointer-events="none"/>');
+    return o.join('');
+  }
+  function xy(p) { var tw = (themeOf(display || G).twist || 0) * L.ringOf(p) * Math.PI / 180, a = (L.slotOf(p) / L.SLOTS) * Math.PI * 2 - Math.PI / 2 + tw, r = geo.radii[L.ringOf(p)]; return [geo.cx + Math.cos(a) * r, geo.cy + Math.sin(a) * r]; }
   /* 행성 렌더링: 종류마다 색과 무관한 고유 모양(고리/크레이터/줄무늬/별결정/나선)을 가진다.
      극성: 중앙 N/S 글자 + 테두리(N=실선 시안, S=점선 마젠타). 색약 모드에서는 무늬를 더 진하고 굵게. */
   function circleSVG(cx, cy, r, color, pol, extra, o) {
@@ -1038,15 +1117,15 @@ var POLESHIFT_GALLERY_IMAGES = [];
   }
   function render() {
     if (!display) return;
-    var h = [], lbl = [], st = display, i, p;
+    var h = [boardBG(display)], lbl = [], st = display, i, p, TH = themeOf(display);
     // 궤도 + 점유율 호
     for (i = 0; i < L.RINGS; i++) {
       var cnt = 0; for (var s = 0; s < L.SLOTS; s++) if (st.cells[L.pos(i, s)] !== null) cnt++;
       var rr = geo.radii[i];
-      h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + rr + '" fill="none" stroke="' + ['#ffc940', '#ff3bd4', '#22e6ff'][i] + '" stroke-opacity=".35" stroke-width="2"/>');
+      h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + rr + '" fill="none" stroke="' + ['#ffc940', '#ff3bd4', '#22e6ff'][i] + '" stroke-opacity=".45" stroke-width="2"' + (TH.dash ? ' stroke-dasharray="' + TH.dash + '"' : '') + '/>');
       var frac = cnt / L.SLOTS, ro = rr + geo.cr + 3, circ = 2 * Math.PI * ro;
       if (i === L.RINGS - 1 || true) h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + (rr + geo.cr * 0.0) + '" fill="none" stroke="' + (frac > 0.75 ? '#ff4b5c' : '#22e6ff') + '" stroke-opacity=".6" stroke-width="3" stroke-dasharray="' + (2 * Math.PI * rr * frac) + ' 9999" transform="rotate(-90 ' + geo.cx + ' ' + geo.cy + ')"/>');
-      { var la = -Math.PI / 2 + Math.PI / 12, lx = geo.cx + Math.cos(la) * rr, ly = geo.cy + Math.sin(la) * rr + 4; lbl.push('<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" font-size="11" font-weight="800" fill="#dfe6ff" stroke="#0b1430" stroke-width="3" paint-order="stroke" text-anchor="middle" pointer-events="none">' + 'R' + (i + 1) + ' ' + cnt + '/12</text>'); }
+      ringCnt[i] = cnt; /* v1.4.5: 궤도 점유 라벨은 판 위 셀과 겹치지 않게 판 아래 줄(#ringInfo)로 옮김 */
     }
     // 자기장 코어
     h.push('<circle cx="' + geo.cx + '" cy="' + geo.cy + '" r="' + geo.radii[0] * 0.38 + '" fill="url(#core)"/>');
@@ -1074,13 +1153,14 @@ var POLESHIFT_GALLERY_IMAGES = [];
     fx.forEach(function (f) { h.push(f); });
     if (TUT) h.push(tutHighlight());
     $('board').innerHTML = h.join(''); $('legend').innerHTML = legendHTML();
+    $('ringInfo').innerHTML = '<span>' + (isSpecial(display) ? '★ 특별 구역 · ' : '') + TH.name + ' · ' + (LAYOUTKR[display.layout] || '자유') + ' 배치</span><span>' + ringCnt.slice(0, L.RINGS).map(function (c, k) { return 'R' + (k + 1) + ' ' + c + '/12'; }).join(' · ') + '</span>';
     pv('pvCur', G && G.current, 46); pv('pvNext', G && G.next, 34);
     updateButtons(); updateHint();
   }
   function pv(id, piece, s) { $(id).innerHTML = piece ? circleSVG(s / 2, s / 2, s / 2 - 3, piece.color, piece.pol, '', piece) : ''; }
   /* v1.4.4: 좁은 화면(<400px)에서는 1만 이상을 13.9k처럼 줄여 쓰고, 그래도 넘치면 글자를 줄인다 */
   function fmtN(n) { n = n || 0; if (window.innerWidth < 400 && n >= 10000) return (Math.floor(n / 100) / 10).toFixed(1).replace(/\.0$/, '') + 'k'; return n.toLocaleString(); }
-  function fitHud() { var els = document.querySelectorAll('#game .stat b, #game .stat span'); for (var i = 0; i < els.length; i++) { var e = els[i]; if (e.id === 'hDiff') continue; e.style.fontSize = ''; e.style.letterSpacing = ''; var fz = parseFloat(getComputedStyle(e).fontSize); var g = 0; while (e.scrollWidth > e.clientWidth + 0.5 && fz > 8 && g++ < 20) { fz -= 0.5; e.style.fontSize = fz + 'px'; e.style.letterSpacing = '-.03em'; } } }
+  function fitHud() { var els = document.querySelectorAll('#game .stat b, #game .stat span'); for (var i = 0; i < els.length; i++) { var e = els[i]; if (e.id === 'hDiff') continue; e.style.fontSize = ''; e.style.letterSpacing = ''; var fz = parseFloat(getComputedStyle(e).fontSize); var g = 0; while (e.scrollWidth > e.clientWidth + 0.5 && fz > 9.5 && g++ < 20) { fz -= 0.5; e.style.fontSize = fz + 'px'; e.style.letterSpacing = '-.03em'; } } }
   function updateHud() {
     $('hScore').textContent = G ? fmtN(G.score) : 0;
     if (G) {
@@ -1091,7 +1171,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
       $('hBar').style.width = Math.min(100, G.score / (G.target || Math.max(1, bestM)) * 100) + '%';
     }
     $('hCombo').textContent = G ? G.combo : 0;
-    if (G) $('hDiff').textContent = G.mode === 'endless' ? '무한·' + CFG.DIFFICULTY[G.diff || 'normal'].label : G.mode === 'daily' ? '오늘 도전' : '단계·' + CFG.DIFFICULTY[G.diff || 'normal'].label; if (G) { var hd = $('hDiff'); hd.style.fontSize = ''; hd.style.letterSpacing = ''; for (var fz = 11; fz > 8.5 && hd.scrollWidth > hd.clientWidth + 0.5; fz -= 0.5) { hd.style.letterSpacing = '-.03em'; hd.style.fontSize = fz - 0.5 + 'px'; } if (hd.scrollWidth > hd.clientWidth + 0.5) hd.textContent = hd.textContent.replace(/^(단계|무한)·/, ''); hd.title = hd.textContent; } /* v1.4.3: 좁은 화면에서 라벨이 잘리지 않게 글자 크기 자동 맞춤 */
+    if (G) $('hDiff').textContent = G.mode === 'endless' ? '무한·' + CFG.DIFFICULTY[G.diff || 'normal'].label : G.mode === 'daily' ? '오늘 도전' : '단계·' + CFG.DIFFICULTY[G.diff || 'normal'].label; if (G) { var hd = $('hDiff'); hd.style.fontSize = ''; hd.style.letterSpacing = ''; if (window.innerWidth < 400 && G.mode !== 'endless') hd.textContent = hd.textContent.replace(/^단계·/, ''); for (var fz = 11; fz > 9.5 && hd.scrollWidth > hd.clientWidth + 0.5; fz -= 0.5) { hd.style.letterSpacing = '-.03em'; hd.style.fontSize = fz - 0.5 + 'px'; } if (hd.scrollWidth > hd.clientWidth + 0.5) hd.textContent = hd.textContent.replace(/^(단계|무한)·/, '').replace(/^오늘 도전$/, '도전'); hd.title = hd.textContent; } /* v1.4.3: 좁은 화면에서 라벨이 잘리지 않게 글자 크기 자동 맞춤 */
     fitHud();
     var ms = G && L.missionStatus(G);
     $('mission').style.display = ms ? '' : 'none';
@@ -1580,7 +1660,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
   function startTutorial(thenPlay) {
     animToken++; busy = false; paused = false; sel = null; fx = [];
     closeAll(); show('game');
-    G = L.createGame(20261028, CFG);
+    G = L.createGame(20261028, Object.assign({}, CFG, { STAGES: CFG.STAGES.map(function (x) { return Object.assign({}, x, { pre: 0 }); }) })); /* 튜토리얼은 빈 판 */
     [[12, 'red', 'N'], [15, 'red', 'S'], [30, 'yellow', 'S'], [31, 'yellow', 'S']].forEach(function (a) { L.addCircle(G, a[0], a[1], a[2]); });
     TUT = { step: 0, thenPlay: !!thenPlay };
     display = L.clone(G); layout(); tutShow(); updateHud();
