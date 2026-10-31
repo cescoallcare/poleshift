@@ -48,7 +48,7 @@ button.gold{border-color:var(--gold);color:var(--gold)}
 .preview{display:flex;gap:6px;align-items:center;background:rgba(15,26,58,.85);border:1px solid #2b3a72;border-radius:12px;padding:4px 8px}
 .preview small{color:var(--mut);font-size:12px;display:block;text-align:center}
 .ctrl button{padding:8px 4px;font-size:15px}
-#hint{width:100%;max-width:560px;font-size:14px;color:var(--mut);text-align:center;min-height:40px;padding:4px 2px 8px;line-height:1.35}
+#hint{word-break:keep-all;overflow-wrap:break-word;width:100%;max-width:560px;font-size:14px;color:var(--mut);text-align:center;min-height:40px;padding:4px 2px 8px;line-height:1.35}
 #formula{font-size:12px;color:#7d8bbb;text-align:center;max-width:560px}
 /* overlay */
 .ov{position:fixed;inset:0;background:rgba(2,4,12,.82);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
@@ -1238,7 +1238,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     var p = h0.p;
     if (TUT) { tutTap(p); return; }
     if (G.cells[p] === null) sel = (sel && sel.kind === 'empty' && sel.p === p) ? null : { kind: 'empty', p: p };
-    else if (G.circles[G.cells[p]].obs) { var oi = OBS_INFO[G.circles[G.cells[p]].color]; sel = null; toast((oi ? oi[0] : '장애물') + '은(는) 선택할 수 없어요'); } /* v1.4.6: 장애물(운석 잔해 등)은 선택 불가 */
+    else if (G.circles[G.cells[p]].obs) { var oi = OBS_INFO[G.circles[G.cells[p]].color]; sel = null; toast(josa(oi ? oi[0] : '장애물', '은', '는') + ' 선택할 수 없어요'); } /* v1.4.6: 장애물(운석 잔해 등)은 선택 불가 */
     else sel = (sel && sel.kind === 'circle' && sel.p === p) ? null : { kind: 'circle', p: p };
     audio(); render();
   });
@@ -1398,7 +1398,11 @@ var POLESHIFT_GALLERY_IMAGES = [];
   var justUnlocked = [];
 
   /* ---------- 토스트 ---------- */
-  function toast(msg, gold) { var d = document.createElement('div'); d.className = 'tmsg' + (gold ? ' gold' : ''); d.textContent = msg; $('toast').appendChild(d); setTimeout(function () { d.remove(); }, settings.rm ? 1400 : 950); }
+  /* v1.4.7: 받침 유무로 조사 선택 (운석 잔해는, 얼음 행성은) */
+  function josa(w, a, b) { var c = String(w).charCodeAt(String(w).length - 1); var jong = c >= 0xAC00 && c <= 0xD7A3 ? (c - 0xAC00) % 28 : (/[0-9]$/.test(w) ? ('013678'.indexOf(String(w).slice(-1)) >= 0 ? 1 : 0) : 0); return w + (jong ? a : b); }
+  /* v1.4.7: 토스트를 하단 안내줄(#hint) 바로 위에 두어 안내가 가려지지 않게 */
+  function placeToast() { var t = $('toast'), h = $('hint'); if (document.body.classList.contains('tut') || !h || !h.offsetParent) { t.style.bottom = ''; return; } var r = h.getBoundingClientRect(); t.style.bottom = Math.max(6, window.innerHeight - r.top + 4) + 'px'; }
+  function toast(msg, gold) { placeToast(); var d = document.createElement('div'); d.className = 'tmsg' + (gold ? ' gold' : ''); d.textContent = msg; $('toast').appendChild(d); setTimeout(function () { d.remove(); }, settings.rm ? 1400 : 950); }
 
   /* ---------- 갤러리 ---------- */
   function condText(c) { return c.type === 'totalScore' ? '누적 총점 ' + c.value.toLocaleString() + '점' : c.type === 'maxCombo' ? c.value + '콤보 달성' : c.type === 'stage' ? '스테이지 ' + c.value + '개 클리어' : '한 판 ' + c.value.toLocaleString() + '점'; }
@@ -1477,7 +1481,7 @@ var POLESHIFT_GALLERY_IMAGES = [];
     var u = !!unlocked[rid], rw = rewardOf(rid), stageN = rid[0] === 's' ? +rid.slice(1) : 0;
     $('zTitle').textContent = u ? '★ ' + cardTitle(rid) : '🔒 ' + (stageN ? 'No.' + stageN + ' ???' : rw.title);
     $('zoomImg').setAttribute('data-rid', rid); $('zoomImg').innerHTML = mediaHTML(rid, !u); bindFallback($('zoomImg'));
-    $('zDesc').textContent = u ? (stageN ? '스테이지 ' + stageN + ' 클리어 보상 일러스트입니다.' : '해금 완료한 업적 카드입니다.') : (stageN ? '스테이지 ' + stageN + '을(를) 클리어하면 해금돼요.' : '해금 조건: ' + condText(rw.cond) + ' (현재 ' + Math.min(condVal(rw.cond), rw.cond.value).toLocaleString() + ')');
+    $('zDesc').textContent = u ? (stageN ? '스테이지 ' + stageN + ' 클리어 보상 일러스트입니다.' : '해금 완료한 업적 카드입니다.') : (stageN ? '스테이지 ' + stageN + ' 클리어 시 해금돼요.' : '해금 조건: ' + condText(rw.cond) + ' (현재 ' + Math.min(condVal(rw.cond), rw.cond.value).toLocaleString() + ')');
     $('ovZoom').classList.add('on');
   }
   var galleryReturn = 'menu';
